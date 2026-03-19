@@ -17,7 +17,7 @@ bcrypt = Bcrypt(app)
 
 #Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = \
-    'mysql+pymysql://root:password@localhost/auth_db'
+    'mysql+pymysql://root:Heer3481%40ift401@localhost/flask_auth_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'your-secret-key'
 
@@ -87,16 +87,14 @@ def register():
 @app.route('/login', methods=["GET", "POST"])
 def login():
     if request.method == "POST": 
-        user = Users.query.filter_by( 
-            username=request.form.get("username")).first() 
-
+        user = Users.query.filter_by(username=request.form.get("username")).first()
         if user and bcrypt.check_password_hash(user.password, request.form.get("password")):
-            login_user(user) 
-            return redirect(url_for("home"))
+            login_user(user)  # log the user in
+            # Redirect admins to admin dashboard, normal users to home
+            return redirect(url_for("admin_dashboard" if user.role == "admin" else "home"))
         else:
-            flash("Invalid username or password. Try again.", "danger") 
-    return render_template("login.html") 
-
+            flash("Invalid username or password. Try again.", "danger")
+    return render_template("login.html")
 
 #protected page
 @app.route('/home') 
@@ -141,6 +139,12 @@ def buy_sell():
 def withdraw_deposit():
     return render_template('withdraw_deposit.html')
 
+@app.route("/admin-dashboard")
+@login_required
+def admin_dashboard():
+    if current_user.role != "admin":
+        return redirect(url_for("home"))
+    return render_template("admin_dashboard.html")
 
 if __name__ == '__main__':
     app.run(debug=True)

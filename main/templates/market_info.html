@@ -1,0 +1,31 @@
+{% extends "base_portfolio.html" %}
+
+{% block brand_bar %}
+{{ super() }}
+{% endblock %}
+
+{% block content %}
+<style>
+    table {
+        width: 60%;
+        /* sets width for table */
+        margin: 20px auto; /* centers + adds spacing */
+        border-collapse: collapse;
+        /* eliminates space between borders, merge into single shared border */
+    }
+</style>
+
+<div class="w-75 mx-auto">
+    <h1>Market Info</h1>
+    <table class="table table-bordered border border-dark">
+        <thead class = "table-dark">
+        <th>Market Hours</th>
+        <th>Market Days</th>
+        </thead>
+        <tr>
+            <td>9:30 AM - 4:00 PM ET</td>
+            <td>Monday-Friday</td>
+        </tr>
+    </table>
+</div>
+{% endblock %}

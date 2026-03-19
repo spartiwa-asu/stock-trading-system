@@ -129,7 +129,7 @@ def market_info():
 @app.route('/transactions')
 @login_required
 def transactions():
-    return render_template('transaction.html')
+    return render_template('transactions.html')
 
 
 @app.route('/buy-sell')

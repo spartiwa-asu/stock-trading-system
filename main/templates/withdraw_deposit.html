@@ -1,7 +1,56 @@
 {% extends "base.html" %}
-
 {% block content %}
-  <div class="mt-4">
-    <h1>Withdraw / Deposit</h1>
-  </div>
+
+<style>
+    .wd-page {
+        margin-top: 30px;
+    }
+    .wd-page .box-container {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+    }
+    .wd-page .custom-card {
+        border: 1px solid #ddd;
+        padding: 20px;
+        width: 280px;
+        text-align: center;
+    }
+    .wd-page .custom-btn {
+        background: #0d6efd;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+    }
+    .wd-page .custom-btn:hover {
+        background: #0b5ed7;
+    }
+</style>
+
+<div class="container mt-5 text-center">
+    <h3 class="mb-4">Transfer Cash</h3>
+
+    <table class="table table-bordered border border-dark">
+        <tr>
+            <th>Total Balance: $21,000.00</th>
+        </tr>
+    </table>
+
+    <div class="wd-page">
+        <div class="box-container">
+            <div class="custom-card">
+                <h5>Deposit</h5>
+                <p>Deposit to stock trading account</p>
+                <button class="custom-btn">Select</button>
+            </div>
+
+            <div class="custom-card">
+                <h5>Withdraw</h5>
+                <p>Withdraw from stock trading account</p>
+                <button class="custom-btn">Select</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

@@ -66,7 +66,14 @@ def load_user(user_id): #Function that receives the user’s ID stored in the se
 '''The load_user function is a user loader callback required by Flask-Login. 
 It takes a user ID as input and queries the database to retrieve the corresponding user object. 
 This function is essential for maintaining user sessions and allowing users to stay logged in across different requests.'''
+
+
+
 # Routes
+
+@app.route('/register', methods=["GET", "POST"]) #GET: shows sign-up page, POST: processes form submission
+def register():
+
 
 #Login route
 @app.route('/login', methods=["GET", "POST"])
@@ -83,25 +90,19 @@ def login():
     return render_template("login.html") #If GET request OR login fails, reload login page
 
 
+#protected page
+@app.route('/home') # will be the home page.
+@login_required # Only logged-in users can access. This decorator ensures the protected view. 
+def home():
+    return render_template("home.html")
+
+
 #Logout route
 @app.route('/logout') #triggered when the user clicks logout
 @login_required #Ensures only logged-in users can access this route
 def logout():
     logout_user()
     return redirect(url_for("index"))
-
-
-# Protected home route
-
-@app.route('/home') # will be the home page.
-@login_required # Only logged-in users can access. This decorator ensures the protected view. 
-def home():
-    return render_template("home.html")
-
-#unprotected home page for non-logged in users.
-@app.route('/')
-def index():
-    return render_template("index.html")
 
 
 if __name__ == '__main__':

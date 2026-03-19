@@ -104,6 +104,20 @@ def logout():
     logout_user()
     return redirect(url_for("index"))
 
+@app.route('/portfolio')
+@login_required
+def portfolio():
+    return render_template("portfolio.html")
+@app.route('/market_info')
+@login_required
+def market_info():
+    return render_template('market_info.html')
+
+@app.route('/transactions')
+@login_required
+def transactions():
+    return render_template('transactions.html')
+
 
 if __name__ == '__main__':
     app.run(debug=True)

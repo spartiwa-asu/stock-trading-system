@@ -129,30 +129,13 @@ def market_info():
 @app.route('/transactions')
 @login_required
 def transactions():
-    return render_template('transactions.html')
-
-
-@app.route('/portfolio')
-@login_required
-def portfolio():
-    return render_template('portfolio.html')
-
-
-@app.route('/market-info')
-def market_info():
-    return render_template('market_info.html')
+    return render_template('transaction.html')
 
 
 @app.route('/buy-sell')
 @login_required
 def buy_sell():
     return render_template('buy_sell.html')
-
-
-@app.route('/transaction')
-@login_required
-def transaction():
-    return render_template('transaction.html')
 
 
 @app.route('/withdraw-deposit')

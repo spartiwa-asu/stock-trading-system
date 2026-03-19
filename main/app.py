@@ -17,7 +17,7 @@ bcrypt = Bcrypt(app)
 
 #Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = \
-    'mysql+pymysql://root:Heer3481%40ift401@localhost/flask_auth_db'
+    'mysql+pymysql://root:password@localhost/auth_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'your-secret-key'
 
@@ -126,13 +126,6 @@ def market_info():
 @login_required
 def transactions():
     return render_template('transactions.html')
-
-
-@app.route('/buy-sell')
-@login_required
-def buy_sell():
-    return render_template('buy_sell.html')
-
 
 @app.route('/withdraw-deposit')
 @login_required

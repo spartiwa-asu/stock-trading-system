@@ -120,6 +120,7 @@ def logout():
 @login_required
 def portfolio():
     return render_template("portfolio.html")
+
 @app.route('/market_info')
 @login_required
 def market_info():

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+
+{% block content %}
+	<div class="text-center">
+		<h1 class="mt-4">Home</h1>
+		<p class="lead">Welcome {{ current_user.full_name or current_user.username }}!</p>
+	</div>
+{% endblock %}

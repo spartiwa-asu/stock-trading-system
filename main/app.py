@@ -1,14 +1,3 @@
-'''Flask core imports: flask, render_template, request, session, 
-url_for, redirect and flash provide web framework foundation for routing,
-templating, HTTP requests, user sessions, URL generation, page redirection,
-and displaying messages'''
-
-'''Flask-SQLAlchemy provides ORM capabilities for database interactions,
-allowing us to define database models as Python classes and perform CRUD operationseasily. FLask-Login manages
- user authentication, session management, and access control, while Flask-Bcrypt is used for securely hashing passwords.'''
-
-'''Flask datetime and random are used for handling OTP generation and expiration. The functools wraps is used to
- create custom decorators for role-based access control.'''
 from flask import Flask, render_template, request, session, url_for, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
@@ -38,8 +27,7 @@ db = SQLAlchemy(app)
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login' # Redirect to login page if not authenticated
-'''The database URI is set to connect to a MySQL database named auth_db with the username root and password Likhi123. 
-The login_manager is initialized and configured to redirect unauthenticated users to the login page.'''
+
 # User model with role-based access control
 class Users(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -48,13 +36,7 @@ class Users(UserMixin, db.Model):
     email = db.Column(db.String(250), unique=True, nullable=False)
     password = db.Column(db.String(250), nullable=False)
     role = db.Column(db.String(50), default="user", nullable=False)
-''' The Users class defines the database model for user accounts, including fields for full name, 
-username, email, phone number, password (hashed), role (user or admin), MFA status, and account 
-creation timestamp. It inherits from UserMixin to integrate with Flask-Login's user management features.'''
 
-    
-''' this code block initializes the database and creates the necessary tables based on the defined models. 
-It ensures that the database is set up and ready to store user information when the application starts.'''
 # Initialize database
 with app.app_context():
     db.create_all()
@@ -63,16 +45,46 @@ with app.app_context():
 @login_manager.user_loader #decorator tells Flask-Login how to reload a user from the session
 def load_user(user_id): #Function that receives the user’s ID stored in the session
     return Users.query.get(int(user_id)) #keeps the user logged in across requests
-'''The load_user function is a user loader callback required by Flask-Login. 
-It takes a user ID as input and queries the database to retrieve the corresponding user object. 
-This function is essential for maintaining user sessions and allowing users to stay logged in across different requests.'''
+
 
 
 
 # Routes
 
+#default route
+@app.route('/')
+def index():
+    return render_template("index.html") #Renders the index page template when accessed via the root URL.
+
 @app.route('/register', methods=["GET", "POST"]) #GET: shows sign-up page, POST: processes form submission
 def register():
+    if request.method == "POST":
+        full_name = request.form.get("full_name")
+        username = request.form.get("username")
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        if not full_name or not username or not email or not password:
+            flash("Please fill out all fields.", "danger")
+            return render_template("register.html")
+
+        # check for existing username or email
+        existing_user = Users.query.filter_by(username=username).first()
+        existing_email = Users.query.filter_by(email=email).first()
+        if existing_user or existing_email:
+            flash("Username or email already exists. Try a different one.", "danger")
+            return render_template("register.html")
+
+        # hash the password and create user
+        hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
+        new_user = Users(full_name=full_name, username=username, email=email, password=hashed_pw)
+        db.session.add(new_user)
+        db.session.commit()
+
+        flash("Account created successfully. Please log in.", "success")
+        return redirect(url_for("login"))
+
+    return render_template("register.html") #Renders the registration page template when accessed via GET request.
 
 
 #Login route
@@ -103,6 +115,35 @@ def home():
 def logout():
     logout_user()
     return redirect(url_for("index"))
+
+
+@app.route('/portfolio')
+@login_required
+def portfolio():
+    return render_template('portfolio.html')
+
+
+@app.route('/market-info')
+def market_info():
+    return render_template('market_info.html')
+
+
+@app.route('/buy-sell')
+@login_required
+def buy_sell():
+    return render_template('buy_sell.html')
+
+
+@app.route('/transaction')
+@login_required
+def transaction():
+    return render_template('transaction.html')
+
+
+@app.route('/withdraw-deposit')
+@login_required
+def withdraw_deposit():
+    return render_template('withdraw_deposit.html')
 
 
 if __name__ == '__main__':

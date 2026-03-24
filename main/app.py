@@ -36,6 +36,52 @@ class Users(UserMixin, db.Model):
     password = db.Column(db.String(250), nullable=False)
     role = db.Column(db.String(50), default="user", nullable=False)
 
+class Stock(db.Model):
+    __tablename__ = 'stock'
+    id = db.Column(db.Integer, primary_key=True)
+    company_name = db.Column(db.String(25), nullable=False, unique=True)
+    price = db.Column(db.Float, nullable=False)
+    volume = db.Column(db.BigInteger, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class WorkingDay(db.Model):
+    WorkingDayId = db.Column(db.Integer, primary_key=True)
+    AdministratorId = db.Column(db.Integer, nullable=True)
+    dayOfWeek = db.Column(db.String(25), nullable=False)
+    startTime = db.Column(db.Time, nullable=False)
+    endTime = db.Column(db.Time, nullable=False)
+    createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+    updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+
+class Portfolio(db.Model):
+    PortfolioId = db.Column(db.Integer, primary_key=True)
+    customerId = db.Column(db.Integer, nullable=True)
+    orderId = db.Column(db.Integer, nullable=True)
+    stockName = db.Column(db.String(25), nullable=False)
+    stockTicker = db.Column(db.String(25), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    currentMarketPrice = db.Column(db.Float, nullable=False)
+    createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+    updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+
+class OrderHistory(db.Model):
+    OrderyId = db.Column(db.Integer, primary_key=True)
+    stockId = db.Column(db.Integer, nullable=True)
+    customerId = db.Column(db.Integer, nullable=True)
+    administratorId = db.Column(db.Integer, nullable=True)
+    type = db.Column(db.String(25), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    totalValue = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(25), nullable=False)
+    companyName = db.Column(db.String(25), nullable=False)
+    ticker = db.Column(db.String(25), nullable=False)
+    createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+    updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+
+
+
 # Initialize database
 with app.app_context():
     db.create_all()

@@ -30,34 +30,23 @@ login_manager.login_view = 'login'
 # User model 
 class Users(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    full_name = db.Column(db.String(250), nullable=False)
-    username = db.Column(db.String(250), unique=True, nullable=False)
-    email = db.Column(db.String(250), unique=True, nullable=False)
-    password = db.Column(db.String(250), nullable=False)
+    full_name = db.Column(db.String(25), nullable=False)
+    username = db.Column(db.String(25), unique=True, nullable=False)
+    email = db.Column(db.String(25), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+    availableFunds = db.Column(db.Float, default=0.0, nullable=False)
+    createdAt = db.Column(db.DateTime, default=datetime.utcnow)
+    updatedAt = db.Column(db.DateTime, default=datetime.utcnow)
     role = db.Column(db.String(50), default="user", nullable=False)
+    userAccountNumber = db.Column(db.String(25), unique=True, nullable=False, index=True)
+    portfolio = db.relationship('Portfolio', backref='user', uselist=False)
+    order_history = db.relationship('OrderHistory', backref='user', lazy=True)
 
-class Stock(db.Model):
-    __tablename__ = 'stock'
-    id = db.Column(db.Integer, primary_key=True)
-    company_name = db.Column(db.String(25), nullable=False, unique=True)
-    price = db.Column(db.Float, nullable=False)
-    volume = db.Column(db.BigInteger, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-
-class WorkingDay(db.Model):
-    WorkingDayId = db.Column(db.Integer, primary_key=True)
-    AdministratorId = db.Column(db.Integer, nullable=True)
-    dayOfWeek = db.Column(db.String(25), nullable=False)
-    startTime = db.Column(db.Time, nullable=False)
-    endTime = db.Column(db.Time, nullable=False)
-    createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
-    updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
 
 class Portfolio(db.Model):
-    PortfolioId = db.Column(db.Integer, primary_key=True)
-    customerId = db.Column(db.Integer, nullable=True)
-    orderId = db.Column(db.Integer, nullable=True)
+    portfolioId = db.Column(db.Integer, primary_key=True)
+    userId = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
+    orderId = db.Column(db.Integer, db.ForeignKey('order_history.orderId'), nullable=False)
     stockName = db.Column(db.String(25), nullable=False)
     stockTicker = db.Column(db.String(25), nullable=False)
     quantity = db.Column(db.Float, nullable=False)
@@ -65,11 +54,27 @@ class Portfolio(db.Model):
     createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
     updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
 
+
+
+class Stock(db.Model):
+    stockId = db.Column(db.Integer, primary_key=True)
+    companyId= db.Column(db.Integer, db.ForeignKey('company.companyId'), nullable=False)
+    administratorId = db.Column(db.Integer, db.ForeignKey('administrator.id'), nullable=False)
+    name = db.Column(db.String(25), nullable=False, unique=True)
+    ticker = db.Column(db.String(25), nullable=False, unique=True)
+    initStockPrice = db.Column(db.Float, nullable=False)
+    currentMarketPrice = db.Column(db.Float, nullable=False)
+    quantity = db.Column(db.BigInteger, nullable=False)
+    createdAt= db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+    updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+
+
+
 class OrderHistory(db.Model):
-    OrderyId = db.Column(db.Integer, primary_key=True)
-    stockId = db.Column(db.Integer, nullable=True)
-    customerId = db.Column(db.Integer, nullable=True)
-    administratorId = db.Column(db.Integer, nullable=True)
+    orderId = db.Column(db.Integer, primary_key=True)
+    stockId = db.Column(db.Integer, db.ForeignKey('stock.stockId'), nullable=False)
+    userId = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    administratorId = db.Column(db.Integer, db.ForeignKey('administrator.id'), nullable=False)
     type = db.Column(db.String(25), nullable=False)
     quantity = db.Column(db.Float, nullable=False)
     price = db.Column(db.Float, nullable=False)
@@ -79,6 +84,58 @@ class OrderHistory(db.Model):
     ticker = db.Column(db.String(25), nullable=False)
     createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
     updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+
+
+class FinancialTransaction(db.Model):
+    financialTransactionId = db.Column(db.Integer, primary_key=True)
+    userAccountNumber = db.Column(db.String(25), db.ForeignKey('users.userAccountNumber'), nullable=False)
+    companyId = db.Column(db.Integer, db.ForeignKey('company.companyId'), nullable=False)
+    orderId = db.Column(db.Integer, db.ForeignKey('order_history.orderId'), nullable=False)
+    type = db.Column(db.String(25), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+
+
+class Company(db.Model):
+    companyId = db.Column(db.Integer, primary_key=True)
+    companyName = db.Column(db.String(25), nullable=False, unique=True)
+    description = db.Column(db.String(255), nullable=True)
+    stockTotalQuantity = db.Column(db.BigInteger, nullable=False)
+    ticker = db.Column(db.String(25), nullable=False, unique=True)
+    currentMarketPrice = db.Column(db.Float, nullable=False)
+    createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+    updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+
+
+class Administrator(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    full_name = db.Column(db.String(25), nullable=False)
+    username = db.Column(db.String(25), unique=True, nullable=False)
+    email = db.Column(db.String(25), unique=True, nullable=False)
+    password = db.Column(db.String(25), nullable=False)
+    role = db.Column(db.String(50), default="admin", nullable=False)
+    createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+    updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+
+
+class Exception(db.Model):
+    exceptionId = db.Column(db.Integer, primary_key=True)
+    administratorId = db.Column(db.Integer, db.ForeignKey('administrator.id'), nullable=False)
+    reason = db.Column(db.String(255), nullable=False)
+    holidayDate = db.Column(db.Date, nullable=False)
+    createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+    updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+
+
+class WorkingDay(db.Model):
+    WorkingDayId = db.Column(db.Integer, primary_key=True)
+    administratorId = db.Column(db.Integer, db.ForeignKey('administrator.id'), nullable=False)
+    dayOfWeek = db.Column(db.String(25), nullable=False)
+    startTime = db.Column(db.Time, nullable=False)
+    endTime = db.Column(db.Time, nullable=False)
+    createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+    updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+
 
 
 
@@ -119,7 +176,8 @@ def register():
             return render_template("register.html")
 
         hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
-        new_user = Users(full_name=full_name, username=username, email=email, password=hashed_pw)
+        account_number = str(random.randint(100000, 999999))
+        new_user = Users(full_name=full_name, username=username, email=email, password=hashed_pw, userAccountNumber=account_number)
         db.session.add(new_user)
         db.session.commit()
 
@@ -137,7 +195,13 @@ def login():
         if user and bcrypt.check_password_hash(user.password, request.form.get("password")):
             login_user(user)  # log the user in
             # Redirect admins to admin dashboard, normal users to home
-            return redirect(url_for("admin_dashboard" if user.role == "admin" else "home"))
+            return redirect(url_for( "home"))
+        
+        admin = Administrator.query.filter_by(username=request.form.get("username")).first()
+        if admin and bcrypt.check_password_hash(admin.password, request.form.get("password")):
+            login_user(admin)
+            return redirect(url_for("admin_dashboard"))
+
         else:
             flash("Invalid username or password. Try again.", "danger")
     return render_template("login.html")
@@ -181,13 +245,9 @@ def withdraw_deposit():
 @app.route("/admin-dashboard")
 @login_required
 def admin_dashboard():
-    if current_user.role != "admin":
+    if current_user.role != "admin": 
         return redirect(url_for("home"))
     return render_template("admin_dashboard.html")
 
 if __name__ == '__main__':
     app.run(debug=True)
-    
-
-
-

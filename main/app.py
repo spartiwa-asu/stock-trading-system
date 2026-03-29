@@ -34,7 +34,6 @@ class Users(UserMixin, db.Model):
     username = db.Column(db.String(25), unique=True, nullable=False)
     email = db.Column(db.String(25), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
-    availableFunds = db.Column(db.Float, default=0.0, nullable=False)
     createdAt = db.Column(db.DateTime, default=datetime.utcnow)
     updatedAt = db.Column(db.DateTime, default=datetime.utcnow)
     role = db.Column(db.String(50), default="user", nullable=False)
@@ -56,12 +55,13 @@ class Portfolio(db.Model):
 
 class Stock(db.Model):
     stockId = db.Column(db.Integer, primary_key=True)
-    companyId= db.Column(db.Integer, db.ForeignKey('company.companyId'), nullable=False)
+    companyId= db.Column(db.Integer, nullable=False)
     administratorId = db.Column(db.Integer, db.ForeignKey('administrator.id'), nullable=False)
     name = db.Column(db.String(25), nullable=False, unique=True)
     ticker = db.Column(db.String(25), nullable=False, unique=True)
     initStockPrice = db.Column(db.Float, nullable=False)
     currentMarketPrice = db.Column(db.Float, nullable=False)
+    totalShares = db.Column(db.Integer, nullable=False)
     quantity = db.Column(db.Integer, nullable=False)
     createdAt= db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
     updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
@@ -78,8 +78,6 @@ class OrderHistory(db.Model):
     price = db.Column(db.Float, nullable=False)
     totalValue = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(25), nullable=False)
-    companyName = db.Column(db.String(25), nullable=False)
-    ticker = db.Column(db.String(25), nullable=False)
     createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
     updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
 
@@ -87,9 +85,11 @@ class OrderHistory(db.Model):
 class FinancialTransaction(db.Model):
     financialTransactionId = db.Column(db.Integer, primary_key=True)
     userId = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    orderId = db.Column(db.Integer, db.ForeignKey('order_history.orderId'), nullable=True)
     type = db.Column(db.String(25), nullable=False)
     amount = db.Column(db.Float, nullable=False)
     createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+    availableFunds = db.Column(db.Float, default=0.0, nullable=False)
 
 
 class Administrator(db.Model):

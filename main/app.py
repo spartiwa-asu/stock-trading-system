@@ -92,17 +92,6 @@ class FinancialTransaction(db.Model):
     createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
 
 
-class Company(db.Model):
-    companyId = db.Column(db.Integer, primary_key=True)
-    companyName = db.Column(db.String(25), nullable=False, unique=True)
-    description = db.Column(db.String(255), nullable=True)
-    stockTotalQuantity = db.Column(db.Integer, nullable=False)
-    ticker = db.Column(db.String(25), nullable=False, unique=True)
-    currentMarketPrice = db.Column(db.Float, nullable=False)
-    createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
-    updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
-
-
 class Administrator(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     full_name = db.Column(db.String(25), nullable=False)

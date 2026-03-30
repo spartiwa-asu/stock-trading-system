@@ -153,11 +153,26 @@ with app.app_context():
 # User loader 
 @login_manager.user_loader
 def load_user(user_id):
-    role, actual_id = user_id.split(":")
-    if role == "user":
-        return db.session.get(Users, int(actual_id))
+    if not user_id:
+        return None
+
+    if ":" not in user_id:
+        try:
+            return Users.query.get(int(user_id))
+        except (ValueError, TypeError):
+            return None
+
+    try:
+        role, actual_id = user_id.split(":", 1)
+        actual_id = int(actual_id)
+    except (ValueError, TypeError):
+        return None
+
     if role == "admin":
-        return db.session.get(Administrator, int(actual_id))
+        return Administrator.query.get(actual_id)
+    elif role == "user":
+        return Users.query.get(actual_id)
+
     return None
 
 
@@ -255,12 +270,12 @@ def portfolio():
             flash("Stock not found.", "danger")
             return redirect(url_for('portfolio'))
 
-        price = stock.price
+        price = stock.currentMarketPrice
         shares_cost = price * quantity
 
         portfolio_entry = Portfolio.query.filter_by(
-            customerId=current_user.id,
-            stockName=stock.company_name
+            userId=current_user.id,
+            stockName=stock.name
         ).first()
 
         if action == "buy":
@@ -270,12 +285,25 @@ def portfolio():
 
             current_user.balance -= shares_cost
 
+            order = OrderHistory(
+                stockId=stock.stockId,
+                userId=current_user.id,
+                administratorId=1,
+                type=action,
+                quantity=quantity,
+                price=price,
+                totalValue=shares_cost,
+                status="completed"
+            )
+            db.session.add(order)
+            db.session.flush()
+
             if not portfolio_entry:
                 portfolio_entry = Portfolio(
-                    customerId=current_user.id,
-                    stockId=stock.id,
-                    stockName=stock.company_name,
-                    stockTicker=stock.company_name[:4].upper(),
+                    userId=current_user.id,
+                    orderId=order.orderId,
+                    stockName=stock.name,
+                    stockTicker=stock.ticker,
                     quantity=quantity,
                     currentMarketPrice=price,
                     updatedAt=datetime.utcnow()
@@ -285,8 +313,9 @@ def portfolio():
                 portfolio_entry.quantity += quantity
                 portfolio_entry.currentMarketPrice = price
                 portfolio_entry.updatedAt = datetime.utcnow()
+                portfolio_entry.orderId = order.orderId
 
-            flash(f"Bought {quantity} shares of {stock.company_name} for ${shares_cost:.2f}", "success")
+            flash(f"Bought {quantity} shares of {stock.name} for ${shares_cost:.2f}", "success")
 
         elif action == "sell":
             if not portfolio_entry or portfolio_entry.quantity < quantity:
@@ -294,11 +323,26 @@ def portfolio():
                 return redirect(url_for('portfolio'))
 
             current_user.balance += shares_cost
+
+            order = OrderHistory(
+                stockId=stock.stockId,
+                userId=current_user.id,
+                administratorId=1,
+                type=action,
+                quantity=quantity,
+                price=price,
+                totalValue=shares_cost,
+                status="completed"
+            )
+            db.session.add(order)
+            db.session.flush()
+
             portfolio_entry.quantity -= quantity
             portfolio_entry.currentMarketPrice = price
             portfolio_entry.updatedAt = datetime.utcnow()
+            portfolio_entry.orderId = order.orderId
 
-            flash(f"Sold {quantity} shares of {stock.company_name} for ${shares_cost:.2f}", "success")
+            flash(f"Sold {quantity} shares of {stock.name} for ${shares_cost:.2f}", "success")
 
             if portfolio_entry.quantity == 0:
                 db.session.delete(portfolio_entry)
@@ -307,29 +351,20 @@ def portfolio():
             flash("Invalid action.", "danger")
             return redirect(url_for('portfolio'))
 
-        order = OrderHistory(
-            stockId=stock.id,
-            userId=current_user.id,
-            administratorId=1,  # replace with a real admin id or make nullable if needed
-            type=action,
-            quantity=quantity,
-            price=price,
-            totalValue=shares_cost,
-            status="completed"
-        )
-
-        db.session.add(order)
         db.session.commit()
-
         return redirect(url_for('portfolio'))
 
-    portfolio_items = Portfolio.query.filter_by(customerId=current_user.id).all()
+    portfolio_items = Portfolio.query.filter_by(userId=current_user.id).all()
+
     return render_template(
         'portfolio.html',
         stocks=stocks,
         portfolio_items=portfolio_items,
         current_user=current_user
     )
+
+
+
 
 
 

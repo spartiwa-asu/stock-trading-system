@@ -60,7 +60,7 @@
               <select name="stock_id" class="form-select" id="stock_sell" required>
                 <option value="">Choose stock to sell</option>
                 {% for item in portfolio_items %}
-                <option value="{{ item.stockId }}">
+                <option value="{{ item.orderId }}">
                   {{ item.stockName }} (Owned: {{ item.quantity }})
                 </option>
                 {% endfor %}
@@ -99,8 +99,8 @@
               <select name="stock_id" class="form-select" id="stock_buy" required>
                 <option value="">Choose stock to buy</option>
                 {% for stock in stocks %}
-                <option value="{{ stock.id }}">
-                  {{ stock.company_name }} (${{ "%.2f"|format(stock.price) }})
+                <option value="{{ stock.stockId }}">
+                  {{ stock.name }} (${{ "%.2f"|format(stock.currentMarketPrice) }})
                 </option>
                 {% endfor %}
               </select>
@@ -141,9 +141,9 @@
     <tbody>
       {% for stock in stocks %}
       <tr>
-        <td>{{ stock.company_name }}</td>
-        <td>${{ "%.2f"|format(stock.price) }}</td>
-        <td>{{ stock.volume }}</td>
+        <td>{{ stock.name }}</td>
+        <td>${{ "%.2f"|format(stock.currentMarketPrice) }}</td>
+        <td>{{ stock.quantity }}</td>
       </tr>
       {% endfor %}
     </tbody>

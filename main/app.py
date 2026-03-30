@@ -17,7 +17,7 @@ bcrypt = Bcrypt(app)
 
 #Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = \
-    'mysql+pymysql://root:Likhi123@localhost/auth_db'
+    'mysql+pymysql://root:Heer3481%40ift401@localhost/auth_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'your-secret-key'
 
@@ -37,6 +37,9 @@ class Users(UserMixin, db.Model):
     createdAt = db.Column(db.DateTime, default=datetime.utcnow)
     updatedAt = db.Column(db.DateTime, default=datetime.utcnow)
     role = db.Column(db.String(50), default="user", nullable=False)
+    balance = db.Column(db.Float, default=0.0, nullable=False)
+    def get_id(self):
+        return f"user:{self.id}"
 
 
 
@@ -82,6 +85,7 @@ class OrderHistory(db.Model):
     updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
 
 
+
 class FinancialTransaction(db.Model):
     financialTransactionId = db.Column(db.Integer, primary_key=True)
     userId = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -92,15 +96,19 @@ class FinancialTransaction(db.Model):
     availableFunds = db.Column(db.Float, default=0.0, nullable=False)
 
 
-class Administrator(db.Model):
+
+class Administrator(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     full_name = db.Column(db.String(25), nullable=False)
     username = db.Column(db.String(25), unique=True, nullable=False)
     email = db.Column(db.String(25), unique=True, nullable=False)
-    password = db.Column(db.String(25), nullable=False)
+    password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(50), default="admin", nullable=False)
     createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
     updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+    def get_id(self):
+        return f"admin:{self.id}"
+
 
 
 class Exception(db.Model):
@@ -110,6 +118,7 @@ class Exception(db.Model):
     holidayDate = db.Column(db.Date, nullable=False)
     createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
     updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+
 
 
 class WorkingDay(db.Model):
@@ -123,18 +132,34 @@ class WorkingDay(db.Model):
 
 
 
-
 # Initialize database
 with app.app_context():
     db.create_all()
 
+    existing_admin = Administrator.query.filter_by(username="admin").first()
+    if not existing_admin:
+        hashed_pw = bcrypt.generate_password_hash("admin123").decode("utf-8")
+        admin = Administrator(
+            full_name="Admin User",
+            username="admin",
+            email="admin@example.com",
+            password=hashed_pw,
+        )
+        db.session.add(admin)
+        db.session.commit()
+        print("Admin created: username=admin, password=admin123")
+
+
 # User loader 
-@login_manager.user_loader #
+@login_manager.user_loader
 def load_user(user_id):
-    return Users.query.get(int(user_id)) 
+    role, actual_id = user_id.split(":")
+    if role == "user":
+        return db.session.get(Users, int(actual_id))
+    if role == "admin":
+        return db.session.get(Administrator, int(actual_id))
+    return None
 
-
-# Routes
 
 #default route
 @app.route('/')
@@ -189,6 +214,7 @@ def login():
         else:
             flash("Invalid username or password. Try again.", "danger")
     return render_template("login.html")
+
 
 #protected page
 @app.route('/home') 
@@ -317,17 +343,85 @@ def market_info():
 def transactions():
     return render_template('transactions.html')
 
-@app.route('/withdraw-deposit')
+@app.route('/withdraw-deposit', methods=["GET", "POST"])
 @login_required
 def withdraw_deposit():
-    return render_template('withdraw_deposit.html')
+    if current_user.role == "admin":
+        flash("Admins cannot deposit or withdraw here.", "danger")
+        return redirect(url_for("admin_dashboard"))
 
-@app.route("/admin-dashboard")
+    if request.method == "POST":
+        action = request.form.get("action")
+        amount = request.form.get("amount", type=float)
+
+        if amount is None or amount <= 0:
+            flash("Enter a valid amount.", "danger")
+            return redirect(url_for("withdraw_deposit"))
+
+        if action == "withdraw":
+            if current_user.balance < amount:
+                flash("Insufficient balance.", "danger")
+                return redirect(url_for("withdraw_deposit"))
+            current_user.balance -= amount
+            flash("Withdraw successful.", "success")
+
+        elif action == "deposit":
+            current_user.balance += amount
+            flash("Deposit successful.", "success")
+
+        else:
+            flash("Invalid action.", "danger")
+            return redirect(url_for("withdraw_deposit"))
+
+        db.session.commit()
+        return redirect(url_for("withdraw_deposit"))
+
+    return render_template("withdraw_deposit.html", balance=current_user.balance)
+
+@app.route("/admin-dashboard", methods=["GET", "POST"])
 @login_required
 def admin_dashboard():
-    if current_user.role != "admin": 
+    if current_user.role != "admin":
         return redirect(url_for("home"))
-    return render_template("admin_dashboard.html")
+
+    if request.method == "POST":
+        company_id = request.form.get("company_id", type=int)
+        name = request.form.get("name")
+        ticker = request.form.get("ticker")
+        init_stock_price = request.form.get("init_stock_price", type=float)
+        total_shares = request.form.get("total_shares", type=int)
+        quantity = request.form.get("quantity", type=int)
+
+        if not all([company_id, name, ticker, init_stock_price, total_shares, quantity]):
+            flash("Please fill all fields.", "danger")
+            return redirect(url_for("admin_dashboard"))
+
+        existing_stock = Stock.query.filter(
+            (Stock.name == name) | (Stock.ticker == ticker)
+        ).first()
+
+        if existing_stock:
+            flash("Stock already exists.", "danger")
+            return redirect(url_for("admin_dashboard"))
+
+        new_stock = Stock(
+            companyId=company_id,
+            administratorId=current_user.id,
+            name=name,
+            ticker=ticker,
+            initStockPrice=init_stock_price,
+            currentMarketPrice=init_stock_price,
+            totalShares=total_shares,
+            quantity=quantity
+        )
+
+        db.session.add(new_stock)
+        db.session.commit()
+        flash("Stock created successfully.", "success")
+        return redirect(url_for("admin_dashboard"))
+
+    stocks = Stock.query.order_by(Stock.stockId.desc()).all()
+    return render_template("admin_dashboard.html", stocks=stocks)
 
 if __name__ == '__main__':
     app.run(debug=True)

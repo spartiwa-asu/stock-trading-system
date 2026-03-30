@@ -1,81 +1,153 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="w-75 mx-auto">
-  <h1>My Portfolio</h1>
-  <table class="table table-bordered border border-dark">
-    <th>Total Balance: $21,000.00</th>
-  </table>
+<div class="container mt-4">
 
+  <h1 class="mb-4">My Portfolio</h1>
 
-  <table class="table table-striped table table-bordered border border-dark">
+  <div class="card mb-4 shadow-sm" style="max-width: 300px;">
+    <div class="card-body">
+      <h5 class="card-title mb-2">Cash Balance</h5>
+      <p class="card-text fs-5 mb-0">${{ "%.2f"|format(current_user.balance) }}</p>
+    </div>
+  </div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <h2 class="mb-3">Holdings</h2>
+  <table class="table table-striped table-bordered border-dark mb-5">
     <thead class="table-dark">
       <tr>
         <th>Stock Name</th>
-        <th>Market Price</th>
-        <th>Stock Owned</th>
-        <th>Action</th>
+        <th>Ticker</th>
+        <th>Current Market Price</th>
+        <th>Shares Owned</th>
       </tr>
     </thead>
     <tbody>
+      {% for item in portfolio_items %}
       <tr>
-        <td>---</td>
-        <td>---</td>
-        <td>---</td>
-        <td>
-          ----
-        </td>
+        <td>{{ item.stockName }}</td>
+        <td>{{ item.stockTicker }}</td>
+        <td>${{ "%.2f"|format(item.currentMarketPrice) }}</td>
+        <td>{{ item.quantity }}</td>
       </tr>
+      {% else %}
       <tr>
-        <td>---</td>
-        <td>---</td>
-        <td>---</td>
-        <td>
-          ----
-        </td>
+        <td colspan="4" class="text-center">No portfolio items yet.</td>
       </tr>
-      <tr>
-        <td>---</td>
-        <td>---</td>
-        <td>----</td>
-        <td>
-          ----
-        </td>
-      </tr>
+      {% endfor %}
     </tbody>
   </table>
 
-</div>
+  <div class="row g-4 mb-5">
+    <div class="col-md-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h3 class="h5 mb-3">Sell Stock</h3>
+          <form method="POST">
+            <div class="mb-3">
+              <label for="stock_sell" class="form-label">Choose stock</label>
+              <select name="stock_id" class="form-select" id="stock_sell" required>
+                <option value="">Choose stock to sell</option>
+                {% for item in portfolio_items %}
+                <option value="{{ item.stockId }}">
+                  {{ item.stockName }} (Owned: {{ item.quantity }})
+                </option>
+                {% endfor %}
+              </select>
+            </div>
 
-<div class="w-75 mx-auto">
-  <h2>Trading Dashboard</h2>
+            <div class="mb-3">
+              <label for="quantity_sell" class="form-label">Shares to Sell</label>
+              <input
+                type="number"
+                class="form-control"
+                id="quantity_sell"
+                name="quantity"
+                placeholder="Enter shares to sell"
+                min="1"
+                step="1"
+                required
+              >
+            </div>
 
-  <table class="table table-striped table table-bordered border border-dark">
+            <button type="submit" class="btn btn-danger" name="action" value="sell">
+              Sell Stock
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h3 class="h5 mb-3">Buy Stock</h3>
+          <form method="POST">
+            <div class="mb-3">
+              <label for="stock_buy" class="form-label">Choose stock</label>
+              <select name="stock_id" class="form-select" id="stock_buy" required>
+                <option value="">Choose stock to buy</option>
+                {% for stock in stocks %}
+                <option value="{{ stock.id }}">
+                  {{ stock.company_name }} (${{ "%.2f"|format(stock.price) }})
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label for="quantity_buy" class="form-label">Shares to Buy</label>
+              <input
+                type="number"
+                class="form-control"
+                id="quantity_buy"
+                name="quantity"
+                placeholder="Enter shares to buy"
+                min="1"
+                step="1"
+                required
+              >
+            </div>
+
+            <button type="submit" class="btn btn-success" name="action" value="buy">
+              Buy Stock
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="mb-3">Market Overview</h2>
+  <table class="table table-striped table-bordered border-dark">
     <thead class="table-dark">
       <tr>
         <th>Stock</th>
-        <th>Price Change</th>
-        <th>Action</th>
+        <th>Current Price</th>
+        <th>Volume</th>
       </tr>
     </thead>
     <tbody>
+      {% for stock in stocks %}
       <tr>
-        <td>----</td>
-        <td>----</td>
-        <td>----</td>
+        <td>{{ stock.company_name }}</td>
+        <td>${{ "%.2f"|format(stock.price) }}</td>
+        <td>{{ stock.volume }}</td>
       </tr>
-      <tr>
-        <td>---</td>
-        <td>----</td>
-        <td>----</td>
-      </tr>
-      <tr>
-        <td>---</td>
-        <td>----</td>
-        <td>----</td>
-      </tr>
+      {% endfor %}
     </tbody>
   </table>
-</div>
 
+</div>
 {% endblock %}

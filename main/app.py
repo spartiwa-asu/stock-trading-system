@@ -206,10 +206,106 @@ def logout():
 
 
 #protected pages
-@app.route('/portfolio')
+from datetime import datetime
+from flask import render_template, request, redirect, url_for, flash
+from flask_login import login_required, current_user
+
+@app.route('/portfolio', methods=['GET', 'POST'])
 @login_required
 def portfolio():
-    return render_template("portfolio.html")
+    stocks = Stock.query.all()
+
+    if request.method == 'POST':
+        stock_id = request.form.get("stock_id", type=int)
+        action = request.form.get("action")
+        quantity = request.form.get("quantity", type=float)
+
+        if not stock_id or not action or not quantity or quantity <= 0:
+            flash("Please enter valid order details.", "danger")
+            return redirect(url_for('portfolio'))
+
+        stock = db.session.get(Stock, stock_id)
+        if not stock:
+            flash("Stock not found.", "danger")
+            return redirect(url_for('portfolio'))
+
+        price = stock.price
+        shares_cost = price * quantity
+
+        portfolio_entry = Portfolio.query.filter_by(
+            customerId=current_user.id,
+            stockName=stock.company_name
+        ).first()
+
+        if action == "buy":
+            if current_user.balance < shares_cost:
+                flash("Not enough cash!", "danger")
+                return redirect(url_for('portfolio'))
+
+            current_user.balance -= shares_cost
+
+            if not portfolio_entry:
+                portfolio_entry = Portfolio(
+                    customerId=current_user.id,
+                    stockId=stock.id,
+                    stockName=stock.company_name,
+                    stockTicker=stock.company_name[:4].upper(),
+                    quantity=quantity,
+                    currentMarketPrice=price,
+                    updatedAt=datetime.utcnow()
+                )
+                db.session.add(portfolio_entry)
+            else:
+                portfolio_entry.quantity += quantity
+                portfolio_entry.currentMarketPrice = price
+                portfolio_entry.updatedAt = datetime.utcnow()
+
+            flash(f"Bought {quantity} shares of {stock.company_name} for ${shares_cost:.2f}", "success")
+
+        elif action == "sell":
+            if not portfolio_entry or portfolio_entry.quantity < quantity:
+                flash("Not enough shares to sell!", "danger")
+                return redirect(url_for('portfolio'))
+
+            current_user.balance += shares_cost
+            portfolio_entry.quantity -= quantity
+            portfolio_entry.currentMarketPrice = price
+            portfolio_entry.updatedAt = datetime.utcnow()
+
+            flash(f"Sold {quantity} shares of {stock.company_name} for ${shares_cost:.2f}", "success")
+
+            if portfolio_entry.quantity == 0:
+                db.session.delete(portfolio_entry)
+
+        else:
+            flash("Invalid action.", "danger")
+            return redirect(url_for('portfolio'))
+
+        order = OrderHistory(
+            stockId=stock.id,
+            userId=current_user.id,
+            administratorId=1,  # replace with a real admin id or make nullable if needed
+            type=action,
+            quantity=quantity,
+            price=price,
+            totalValue=shares_cost,
+            status="completed"
+        )
+
+        db.session.add(order)
+        db.session.commit()
+
+        return redirect(url_for('portfolio'))
+
+    portfolio_items = Portfolio.query.filter_by(customerId=current_user.id).all()
+    return render_template(
+        'portfolio.html',
+        stocks=stocks,
+        portfolio_items=portfolio_items,
+        current_user=current_user
+    )
+
+
 
 @app.route('/market_info')
 @login_required

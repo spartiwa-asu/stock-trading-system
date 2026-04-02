@@ -257,28 +257,33 @@ def portfolio():
     stocks = Stock.query.all()
 
     if request.method == 'POST':
-        stock_id = request.form.get("stock_id", type=int)
         action = request.form.get("action")
         quantity = request.form.get("quantity", type=float)
 
-        if not stock_id or not action or not quantity or quantity <= 0:
+        if not action or quantity is None or quantity <= 0:
             flash("Please enter valid order details.", "danger")
             return redirect(url_for('portfolio'))
 
-        stock = db.session.get(Stock, stock_id)
-        if not stock:
-            flash("Stock not found.", "danger")
-            return redirect(url_for('portfolio'))
-
-        price = stock.currentMarketPrice
-        shares_cost = price * quantity
-
-        portfolio_entry = Portfolio.query.filter_by(
-            userId=current_user.id,
-            stockName=stock.name
-        ).first()
-
         if action == "buy":
+            stock_id = request.form.get("stock_id", type=int)
+
+            if not stock_id:
+                flash("Please choose a stock to buy.", "danger")
+                return redirect(url_for('portfolio'))
+
+            stock = db.session.get(Stock, stock_id)
+            if not stock:
+                flash("Stock not found.", "danger")
+                return redirect(url_for('portfolio'))
+
+            price = stock.currentMarketPrice
+            shares_cost = price * quantity
+
+            portfolio_entry = Portfolio.query.filter_by(
+                userId=current_user.id,
+                stockTicker=stock.ticker
+            ).first()
+
             if current_user.balance < shares_cost:
                 flash("Not enough cash!", "danger")
                 return redirect(url_for('portfolio'))
@@ -289,7 +294,7 @@ def portfolio():
                 stockId=stock.stockId,
                 userId=current_user.id,
                 administratorId=1,
-                type=action,
+                type="buy",
                 quantity=quantity,
                 price=price,
                 totalValue=shares_cost,
@@ -298,7 +303,12 @@ def portfolio():
             db.session.add(order)
             db.session.flush()
 
-            if not portfolio_entry:
+            if portfolio_entry:
+                portfolio_entry.quantity += quantity
+                portfolio_entry.currentMarketPrice = price
+                portfolio_entry.updatedAt = datetime.utcnow()
+                portfolio_entry.orderId = order.orderId
+            else:
                 portfolio_entry = Portfolio(
                     userId=current_user.id,
                     orderId=order.orderId,
@@ -309,18 +319,32 @@ def portfolio():
                     updatedAt=datetime.utcnow()
                 )
                 db.session.add(portfolio_entry)
-            else:
-                portfolio_entry.quantity += quantity
-                portfolio_entry.currentMarketPrice = price
-                portfolio_entry.updatedAt = datetime.utcnow()
-                portfolio_entry.orderId = order.orderId
 
             flash(f"Bought {quantity} shares of {stock.name} for ${shares_cost:.2f}", "success")
 
         elif action == "sell":
+            stock_ticker = request.form.get("stock_ticker")
+
+            if not stock_ticker:
+                flash("Please choose a stock to sell.", "danger")
+                return redirect(url_for('portfolio'))
+
+            stock = Stock.query.filter_by(ticker=stock_ticker).first()
+            if not stock:
+                flash("Stock not found.", "danger")
+                return redirect(url_for('portfolio'))
+
+            portfolio_entry = Portfolio.query.filter_by(
+                userId=current_user.id,
+                stockTicker=stock_ticker
+            ).first()
+
             if not portfolio_entry or portfolio_entry.quantity < quantity:
                 flash("Not enough shares to sell!", "danger")
                 return redirect(url_for('portfolio'))
+
+            price = stock.currentMarketPrice
+            shares_cost = price * quantity
 
             current_user.balance += shares_cost
 
@@ -328,7 +352,7 @@ def portfolio():
                 stockId=stock.stockId,
                 userId=current_user.id,
                 administratorId=1,
-                type=action,
+                type="sell",
                 quantity=quantity,
                 price=price,
                 totalValue=shares_cost,
@@ -342,10 +366,10 @@ def portfolio():
             portfolio_entry.updatedAt = datetime.utcnow()
             portfolio_entry.orderId = order.orderId
 
-            flash(f"Sold {quantity} shares of {stock.name} for ${shares_cost:.2f}", "success")
-
             if portfolio_entry.quantity == 0:
                 db.session.delete(portfolio_entry)
+
+            flash(f"Sold {quantity} shares of {stock.name} for ${shares_cost:.2f}", "success")
 
         else:
             flash("Invalid action.", "danger")
@@ -362,6 +386,8 @@ def portfolio():
         portfolio_items=portfolio_items,
         current_user=current_user
     )
+
+
 
 
 

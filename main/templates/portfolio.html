@@ -13,14 +13,14 @@
   </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      {% endfor %}
-    {% endif %}
+  {% if messages %}
+  {% for category, message in messages %}
+  <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+    {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  {% endfor %}
+  {% endif %}
   {% endwith %}
 
   <h2 class="mb-3">Holdings</h2>
@@ -57,11 +57,11 @@
           <form method="POST">
             <div class="mb-3">
               <label for="stock_sell" class="form-label">Choose stock</label>
-              <select name="stock_id" class="form-select" id="stock_sell" required>
+              <select name="stock_ticker" class="form-select" id="stock_sell" required>
                 <option value="">Choose stock to sell</option>
                 {% for item in portfolio_items %}
-                <option value="{{ item.orderId }}">
-                  {{ item.stockName }} (Owned: {{ item.quantity }})
+                <option value="{{ item.stockTicker }}">
+                  {{ item.stockName }} ({{ item.stockTicker }}) - Owned: {{ item.quantity }}
                 </option>
                 {% endfor %}
               </select>
@@ -69,16 +69,8 @@
 
             <div class="mb-3">
               <label for="quantity_sell" class="form-label">Shares to Sell</label>
-              <input
-                type="number"
-                class="form-control"
-                id="quantity_sell"
-                name="quantity"
-                placeholder="Enter shares to sell"
-                min="1"
-                step="1"
-                required
-              >
+              <input type="number" class="form-control" id="quantity_sell" name="quantity"
+                placeholder="Enter shares to sell" min="1" step="1" required>
             </div>
 
             <button type="submit" class="btn btn-danger" name="action" value="sell">
@@ -108,16 +100,8 @@
 
             <div class="mb-3">
               <label for="quantity_buy" class="form-label">Shares to Buy</label>
-              <input
-                type="number"
-                class="form-control"
-                id="quantity_buy"
-                name="quantity"
-                placeholder="Enter shares to buy"
-                min="1"
-                step="1"
-                required
-              >
+              <input type="number" class="form-control" id="quantity_buy" name="quantity"
+                placeholder="Enter shares to buy" min="1" step="1" required>
             </div>
 
             <button type="submit" class="btn btn-success" name="action" value="buy">

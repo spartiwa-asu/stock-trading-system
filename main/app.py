@@ -488,4 +488,8 @@ def admin_dashboard():
     return render_template("admin_dashboard.html", stocks=stocks)
 
 if __name__ == '__main__':
+    price_thread = threading.Thread(target=update_stock_prices)
+    price_thread.daemon = True
+    price_thread.start()
+
     app.run(debug=True)

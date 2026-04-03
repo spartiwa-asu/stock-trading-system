@@ -58,17 +58,13 @@ class Portfolio(db.Model):
 
 class Stock(db.Model):
     stockId = db.Column(db.Integer, primary_key=True)
-    companyId= db.Column(db.Integer, nullable=False)
-    administratorId = db.Column(db.Integer, db.ForeignKey('administrator.id'), nullable=False)
     name = db.Column(db.String(25), nullable=False, unique=True)
     ticker = db.Column(db.String(25), nullable=False, unique=True)
     initStockPrice = db.Column(db.Float, nullable=False)
     currentMarketPrice = db.Column(db.Float, nullable=False)
-    totalShares = db.Column(db.Integer, nullable=False)
-    quantity = db.Column(db.Integer, nullable=False)
-    createdAt= db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+    volume = db.Column(db.Integer, nullable=False)
+    createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
     updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
-
 
 
 #class OrderHistory(db.Model):

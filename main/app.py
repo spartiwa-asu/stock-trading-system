@@ -374,10 +374,25 @@ def portfolio():
         current_user=current_user
     )
 
+import time
+import threading
+import random
 
+def update_stock_prices():
+    with app.app_context():
+        while True:
+            stocks = Stock.query.all()
 
+            for stock in stocks:
+                base_price = stock.initStockPrice
+                percent_change = random.uniform(-0.2, 0.2)
+                new_price = base_price * (1 + percent_change)
+                stock.currentMarketPrice = round(max(1, new_price), 2)
 
+            db.session.commit()
+            print("Stock prices updated")
 
+            time.sleep(60)
 
 
 

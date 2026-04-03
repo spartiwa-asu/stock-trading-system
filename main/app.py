@@ -433,15 +433,19 @@ def admin_dashboard():
         return redirect(url_for("home"))
 
     if request.method == "POST":
-        company_id = request.form.get("company_id", type=int)
         name = request.form.get("name")
         ticker = request.form.get("ticker")
         init_stock_price = request.form.get("init_stock_price", type=float)
-        total_shares = request.form.get("total_shares", type=int)
-        quantity = request.form.get("quantity", type=int)
+        volume = request.form.get("volume", type=int)
 
-        if not all([company_id, name, ticker, init_stock_price, total_shares, quantity]):
+        if not name or not ticker or init_stock_price is None or volume is None:
             flash("Please fill all fields.", "danger")
+            return redirect(url_for("admin_dashboard"))
+
+        volume = max(0, volume)
+
+        if volume == 0:
+            flash("Volume must be greater than 0.", "danger")
             return redirect(url_for("admin_dashboard"))
 
         existing_stock = Stock.query.filter(
@@ -453,14 +457,11 @@ def admin_dashboard():
             return redirect(url_for("admin_dashboard"))
 
         new_stock = Stock(
-            companyId=company_id,
-            administratorId=current_user.id,
             name=name,
             ticker=ticker,
             initStockPrice=init_stock_price,
             currentMarketPrice=init_stock_price,
-            totalShares=total_shares,
-            quantity=quantity
+            volume=volume
         )
 
         db.session.add(new_stock)

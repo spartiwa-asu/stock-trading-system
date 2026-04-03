@@ -46,7 +46,7 @@ class Users(UserMixin, db.Model):
 class Portfolio(db.Model):
     portfolioId = db.Column(db.Integer, primary_key=True)
     userId = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
-    orderId = db.Column(db.Integer, db.ForeignKey('order_history.orderId'), nullable=False)
+    financialTransactionId = db.Column(db.Integer, db.ForeignKey('financial_transaction.financialTransactionId'), nullable=False)
     stockName = db.Column(db.String(25), nullable=False)
     stockTicker = db.Column(db.String(25), nullable=False)
     quantity = db.Column(db.Float, nullable=False)
@@ -71,29 +71,34 @@ class Stock(db.Model):
 
 
 
-class OrderHistory(db.Model):
-    orderId = db.Column(db.Integer, primary_key=True)
-    stockId = db.Column(db.Integer, db.ForeignKey('stock.stockId'), nullable=False)
-    userId = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    administratorId = db.Column(db.Integer, db.ForeignKey('administrator.id'), nullable=False)
-    type = db.Column(db.String(25), nullable=False)
-    quantity = db.Column(db.Float, nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    totalValue = db.Column(db.Float, nullable=False)
-    status = db.Column(db.String(25), nullable=False)
-    createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
-    updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+#class OrderHistory(db.Model):
+    #orderId = db.Column(db.Integer, primary_key=True)
+    #stockId = db.Column(db.Integer, db.ForeignKey('stock.stockId'), nullable=False)
+    #userId = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    #administratorId = db.Column(db.Integer, db.ForeignKey('administrator.id'), nullable=False)
+    #type = db.Column(db.String(25), nullable=False)
+    #quantity = db.Column(db.Float, nullable=False)
+    #price = db.Column(db.Float, nullable=False)
+    #totalValue = db.Column(db.Float, nullable=False)
+    #status = db.Column(db.String(25), nullable=False)
+    #createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
+    #updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
 
 
 
 class FinancialTransaction(db.Model):
     financialTransactionId = db.Column(db.Integer, primary_key=True)
     userId = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    orderId = db.Column(db.Integer, db.ForeignKey('order_history.orderId'), nullable=True)
-    type = db.Column(db.String(25), nullable=False)
+    stockId = db.Column(db.Integer, db.ForeignKey('stock.stockId'), nullable=False)
+    administratorId = db.Column(db.Integer, db.ForeignKey('administrator.id'), nullable=False)
+    type = db.Column(db.String(10), nullable=False)
+    status = db.Column(db.String(25), nullable=False)
+    quantity = db.Column(db.Float, nullable=True)
+    price = db.Column(db.Float, nullable=True)
     amount = db.Column(db.Float, nullable=False)
+    balance = db.Column(db.Float, db.ForeignKey('users.balance'), nullable=False)
     createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
-    availableFunds = db.Column(db.Float, default=0.0, nullable=False)
+    balance = db.Column(db.float, db.ForeignKey('user.balance'), nullable=False)
 
 
 
@@ -110,26 +115,13 @@ class Administrator(UserMixin, db.Model):
         return f"admin:{self.id}"
 
 
-
-class Exception(db.Model):
-    exceptionId = db.Column(db.Integer, primary_key=True)
-    administratorId = db.Column(db.Integer, db.ForeignKey('administrator.id'), nullable=False)
-    reason = db.Column(db.String(255), nullable=False)
-    holidayDate = db.Column(db.Date, nullable=False)
-    createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
-    updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
-
-
-
-class WorkingDay(db.Model):
-    WorkingDayId = db.Column(db.Integer, primary_key=True)
-    administratorId = db.Column(db.Integer, db.ForeignKey('administrator.id'), nullable=False)
+class MarketSchedule(db.Model):
+    scheduleId = db.Column(db.Integer, primary_key=True)
     dayOfWeek = db.Column(db.String(25), nullable=False)
+    holidayDate = db.Column(db.Date, nullable=True)
     startTime = db.Column(db.Time, nullable=False)
     endTime = db.Column(db.Time, nullable=False)
-    createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
-    updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
-
+    reason = db.Column(db.String(255), nullable=False)
 
 
 # Initialize database

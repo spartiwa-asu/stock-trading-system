@@ -17,7 +17,7 @@ bcrypt = Bcrypt(app)
 
 #Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = \
-    'mysql+pymysql://root:Heer3481%40ift401@localhost/auth_db'
+    'mysql+pymysql://root:password@localhost/auth_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'your-secret-key'
 
@@ -98,7 +98,6 @@ class FinancialTransaction(db.Model):
     amount = db.Column(db.Float, nullable=False)
     balance = db.Column(db.Float, db.ForeignKey('users.balance'), nullable=False)
     createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
-    balance = db.Column(db.float, db.ForeignKey('user.balance'), nullable=False)
 
 
 

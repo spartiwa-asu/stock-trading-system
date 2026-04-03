@@ -92,7 +92,7 @@ class FinancialTransaction(db.Model):
     quantity = db.Column(db.Float, nullable=True)
     price = db.Column(db.Float, nullable=True)
     amount = db.Column(db.Float, nullable=False)
-    balance = db.Column(db.Float, db.ForeignKey('users.balance'), nullable=False)
+    balance = db.Column(db.Float, nullable=False)
     createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
 
 

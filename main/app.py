@@ -331,17 +331,27 @@ def portfolio():
             db.session.add(transaction)
             db.session.flush()
 
-            # ALWAYS create a new portfolio row for each buy
-            portfolio_entry = Portfolio(
+            portfolio_entry = Portfolio.query.filter_by(
                 userId=current_user.id,
-                financialTransactionId=transaction.financialTransactionId,
-                stockName=stock.name,
-                stockTicker=stock.ticker,
-                quantity=quantity,
-                currentMarketPrice=price,
-                updatedAt=datetime.utcnow()
-            )
-            db.session.add(portfolio_entry)
+                stockTicker=stock.ticker
+            ).first()
+
+            if portfolio_entry:
+                portfolio_entry.quantity += quantity
+                portfolio_entry.currentMarketPrice = price
+                portfolio_entry.updatedAt = datetime.utcnow()
+                portfolio_entry.financialTransactionId = transaction.financialTransactionId
+            else:
+                portfolio_entry = Portfolio(
+                    userId=current_user.id,
+                    financialTransactionId=transaction.financialTransactionId,
+                    stockName=stock.name,
+                    stockTicker=stock.ticker,
+                    quantity=quantity,
+                    currentMarketPrice=price,
+                    updatedAt=datetime.utcnow()
+                )
+                db.session.add(portfolio_entry)
 
             flash(f"Bought {quantity} share(s) of {stock.name} for ${shares_cost:.2f}", "success")
 
@@ -357,11 +367,10 @@ def portfolio():
                 flash("Stock not found.", "danger")
                 return redirect(url_for('portfolio'))
 
-            # sell from the oldest matching holding row
             portfolio_entry = Portfolio.query.filter_by(
                 userId=current_user.id,
                 stockTicker=stock_ticker
-            ).order_by(Portfolio.createdAt.asc()).first()
+            ).first()
 
             if not portfolio_entry or portfolio_entry.quantity < quantity:
                 flash("Not enough shares to sell!", "danger")

@@ -246,6 +246,7 @@ def portfolio():
     if request.method == 'POST':
         action = request.form.get("action")
         quantity = request.form.get("quantity", type=float)
+        order_status = request.form.get("order_status", "completed")
 
         if not action or quantity is None or quantity <= 0:
             flash("Please enter valid order details.", "danger")
@@ -266,39 +267,84 @@ def portfolio():
             price = stock.currentMarketPrice
             shares_cost = price * quantity
 
+            if current_user.balance < shares_cost:
+                flash("Not enough cash!", "danger")
+                return redirect(url_for('portfolio'))
+
+            if order_status == "pending":
+                flash(
+                    f"Pending order: Do you wish to purchase {quantity} share(s) of "
+                    f"{stock.name} for ${shares_cost:.2f}? "
+                    f"Confirm by resubmitting with status 'completed'.",
+                    "warning"
+                )
+
+                transaction = FinancialTransaction(
+                    stockId=stock.stockId,
+                    userId=current_user.id,
+                    administratorId=1,
+                    type="buy",
+                    status="pending",
+                    quantity=quantity,
+                    price=price,
+                    amount=shares_cost,
+                    balance=current_user.balance
+                )
+                db.session.add(transaction)
+                db.session.commit()
+                return redirect(url_for('portfolio'))
+
+            if order_status == "cancelled":
+                transaction = FinancialTransaction(
+                    stockId=stock.stockId,
+                    userId=current_user.id,
+                    administratorId=1,
+                    type="buy",
+                    status="cancelled",
+                    quantity=quantity,
+                    price=price,
+                    amount=shares_cost,
+                    balance=current_user.balance
+                )
+                db.session.add(transaction)
+                db.session.commit()
+                flash(
+                    f"Your buy order for {quantity} share(s) of {stock.name} "
+                    f"(${shares_cost:.2f}) has been cancelled.",
+                    "danger"
+                )
+                return redirect(url_for('portfolio'))
+
+            current_user.balance -= shares_cost
+
+            transaction = FinancialTransaction(
+                stockId=stock.stockId,
+                userId=current_user.id,
+                administratorId=1,
+                type="buy",
+                status="completed",
+                quantity=quantity,
+                price=price,
+                amount=shares_cost,
+                balance=current_user.balance
+            )
+            db.session.add(transaction)
+            db.session.flush()
+
             portfolio_entry = Portfolio.query.filter_by(
                 userId=current_user.id,
                 stockTicker=stock.ticker
             ).first()
 
-            if current_user.balance < shares_cost:
-                flash("Not enough cash!", "danger")
-                return redirect(url_for('portfolio'))
-
-            current_user.balance -= shares_cost
-
-            order = OrderHistory(
-                stockId=stock.stockId,
-                userId=current_user.id,
-                administratorId=1,
-                type="buy",
-                quantity=quantity,
-                price=price,
-                totalValue=shares_cost,
-                status="completed"
-            )
-            db.session.add(order)
-            db.session.flush()
-
             if portfolio_entry:
                 portfolio_entry.quantity += quantity
                 portfolio_entry.currentMarketPrice = price
                 portfolio_entry.updatedAt = datetime.utcnow()
-                portfolio_entry.orderId = order.orderId
+                portfolio_entry.financialTransactionId = transaction.financialTransactionId
             else:
                 portfolio_entry = Portfolio(
                     userId=current_user.id,
-                    orderId=order.orderId,
+                    financialTransactionId=transaction.financialTransactionId,
                     stockName=stock.name,
                     stockTicker=stock.ticker,
                     quantity=quantity,
@@ -307,7 +353,7 @@ def portfolio():
                 )
                 db.session.add(portfolio_entry)
 
-            flash(f"Bought {quantity} shares of {stock.name} for ${shares_cost:.2f}", "success")
+            flash(f"Bought {quantity} share(s) of {stock.name} for ${shares_cost:.2f}", "success")
 
         elif action == "sell":
             stock_ticker = request.form.get("stock_ticker")
@@ -333,30 +379,74 @@ def portfolio():
             price = stock.currentMarketPrice
             shares_cost = price * quantity
 
+            if order_status == "pending":
+                flash(
+                    f"Pending order: Do you wish to sell {quantity} share(s) of "
+                    f"{stock.name} for ${shares_cost:.2f}? "
+                    f"Confirm by resubmitting with status 'completed'.",
+                    "warning"
+                )
+                transaction = FinancialTransaction(
+                    stockId=stock.stockId,
+                    userId=current_user.id,
+                    administratorId=1,
+                    type="sell",
+                    status="pending",
+                    quantity=quantity,
+                    price=price,
+                    amount=shares_cost,
+                    balance=current_user.balance
+                )
+                db.session.add(transaction)
+                db.session.commit()
+                return redirect(url_for('portfolio'))
+
+            if order_status == "cancelled":
+                transaction = FinancialTransaction(
+                    stockId=stock.stockId,
+                    userId=current_user.id,
+                    administratorId=1,
+                    type="sell",
+                    status="cancelled",
+                    quantity=quantity,
+                    price=price,
+                    amount=shares_cost,
+                    balance=current_user.balance
+                )
+                db.session.add(transaction)
+                db.session.commit()
+                flash(
+                    f"Your sell order for {quantity} share(s) of {stock.name} "
+                    f"(${shares_cost:.2f}) has been cancelled.",
+                    "danger"
+                )
+                return redirect(url_for('portfolio'))
+
             current_user.balance += shares_cost
 
-            order = OrderHistory(
+            transaction = FinancialTransaction(
                 stockId=stock.stockId,
                 userId=current_user.id,
                 administratorId=1,
                 type="sell",
+                status="completed",
                 quantity=quantity,
                 price=price,
-                totalValue=shares_cost,
-                status="completed"
+                amount=shares_cost,
+                balance=current_user.balance
             )
-            db.session.add(order)
+            db.session.add(transaction)
             db.session.flush()
 
             portfolio_entry.quantity -= quantity
             portfolio_entry.currentMarketPrice = price
             portfolio_entry.updatedAt = datetime.utcnow()
-            portfolio_entry.orderId = order.orderId
+            portfolio_entry.financialTransactionId = transaction.financialTransactionId
 
             if portfolio_entry.quantity == 0:
                 db.session.delete(portfolio_entry)
 
-            flash(f"Sold {quantity} shares of {stock.name} for ${shares_cost:.2f}", "success")
+            flash(f"Sold {quantity} share(s) of {stock.name} for ${shares_cost:.2f}", "success")
 
         else:
             flash("Invalid action.", "danger")
@@ -367,11 +457,19 @@ def portfolio():
 
     portfolio_items = Portfolio.query.filter_by(userId=current_user.id).all()
 
+    portfolio_total_value = sum(
+        item.quantity * item.currentMarketPrice for item in portfolio_items
+    )
+
+    total_account_value = current_user.balance + portfolio_total_value
+
     return render_template(
         'portfolio.html',
         stocks=stocks,
         portfolio_items=portfolio_items,
-        current_user=current_user
+        current_user=current_user,
+        portfolio_total_value=portfolio_total_value,
+        total_account_value=total_account_value
     )
 
 import time

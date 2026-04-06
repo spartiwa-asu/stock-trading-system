@@ -17,7 +17,7 @@ bcrypt = Bcrypt(app)
 
 #Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = \
-    'mysql+pymysql://root:Likhi123@localhost/auth_db'
+    'mysql+pymysql://root:Heer3481%40ift401@localhost/auth_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'your-secret-key'
 
@@ -85,8 +85,8 @@ class Stock(db.Model):
 class FinancialTransaction(db.Model):
     financialTransactionId = db.Column(db.Integer, primary_key=True)
     userId = db.Column(db.Integer, db.ForeignKey('users.id'), unique=False, nullable=False)
-    stockId = db.Column(db.Integer, db.ForeignKey('stock.stockId'), nullable=False)
-    administratorId = db.Column(db.Integer, db.ForeignKey('administrator.id'), nullable=False)
+    stockId = db.Column(db.Integer, db.ForeignKey('stock.stockId'), nullable=True)
+    administratorId = db.Column(db.Integer, db.ForeignKey('administrator.id'), nullable=True)
     type = db.Column(db.String(10), nullable=False)
     status = db.Column(db.String(25), nullable=False)
     quantity = db.Column(db.Float, nullable=True)
@@ -548,11 +548,38 @@ def withdraw_deposit():
             if current_user.balance < amount:
                 flash("Insufficient balance.", "danger")
                 return redirect(url_for("withdraw_deposit"))
+
             current_user.balance -= amount
+
+            transaction = FinancialTransaction(
+                userId=current_user.id,
+                stockId=None,
+                administratorId=None,
+                type="withdraw",
+                status="completed",
+                quantity=None,
+                price=None,
+                amount=amount,
+                balance=current_user.balance
+            )
+            db.session.add(transaction)
             flash("Withdraw successful.", "success")
 
         elif action == "deposit":
             current_user.balance += amount
+
+            transaction = FinancialTransaction(
+                userId=current_user.id,
+                stockId=None,
+                administratorId=None,
+                type="deposit",
+                status="completed",
+                quantity=None,
+                price=None,
+                amount=amount,
+                balance=current_user.balance
+            )
+            db.session.add(transaction)
             flash("Deposit successful.", "success")
 
         else:

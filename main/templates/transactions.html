@@ -19,32 +19,80 @@
     <tbody>
       {% if transactions %}
         {% for t in transactions %}
-        <tr class="{% if t.status == 'cancelled' %}table-warning{% else %}table-success{% endif %}">
+        <tr class="
+          {% if t.status|lower == 'cancelled' %}table-danger
+          {% elif t.status|lower == 'pending' %}table-warning
+          {% elif t.type|lower == 'sell' %}table-danger
+          {% elif t.type|lower == 'deposit' %}table-info
+          {% elif t.type|lower == 'withdraw' %}table-warning
+          {% else %}table-success
+          {% endif %}
+        ">
           <td>{{ t.createdAt.strftime('%m/%d %H:%M') }}</td>
+
           <td>
-            <strong>{{ t.ticker }}</strong><br>
-            <small>{{ t.stock_name }}</small>
-          </td>
-          <td>
-            <span class="badge bg-success">
-              {{ t.type.upper() }}
-            </span>
-          </td>
-          <td>
-            {% if t.status == 'completed' %}
-              <span class="badge bg-success">COMPLETED</span>
-            {% elif t.status == 'cancelled' %}
-              <span class="badge bg-danger">CANCELLED</span>
+            {% if t.ticker %}
+              <strong>{{ t.ticker }}</strong><br>
+              <small>{{ t.stock_name }}</small>
+            {% else %}
+              <span class="text-muted">Cash Transaction</span>
             {% endif %}
           </td>
-          <td>{{ t.quantity }}</td>
-          <td>${{ "%.2f"|format(t.price) }}</td>
-          <td>${{ "%.2f"|format(t.amount) }}</td>
+
+          <td>
+            {% if t.type|lower == 'buy' %}
+              <span class="badge bg-success">BUY</span>
+            {% elif t.type|lower == 'sell' %}
+              <span class="badge bg-danger">SELL</span>
+            {% elif t.type|lower == 'deposit' %}
+              <span class="badge bg-primary">DEPOSIT</span>
+            {% elif t.type|lower == 'withdraw' %}
+              <span class="badge bg-warning text-dark">WITHDRAW</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ t.type|upper }}</span>
+            {% endif %}
+          </td>
+
+          <td>
+            {% if t.status|lower == 'completed' %}
+              <span class="badge bg-success">COMPLETED</span>
+            {% elif t.status|lower == 'pending' %}
+              <span class="badge bg-warning text-dark">PENDING</span>
+            {% elif t.status|lower == 'cancelled' %}
+              <span class="badge bg-danger">CANCELLED</span>
+            {% else %}
+              <span class="badge bg-secondary">{{ t.status|upper }}</span>
+            {% endif %}
+          </td>
+
+          <td>
+            {% if t.quantity is not none %}
+              {{ t.quantity }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+
+          <td>
+            {% if t.price is not none %}
+              ${{ "%.2f"|format(t.price) }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
+
+          <td>
+            {% if t.amount is not none %}
+              ${{ "%.2f"|format(t.amount) }}
+            {% else %}
+              -
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
       {% else %}
         <tr>
-          <td colspan="7" class="text-center">No completed or cancelled buy transactions yet</td>
+          <td colspan="7" class="text-center">No transactions yet</td>
         </tr>
       {% endif %}
     </tbody>

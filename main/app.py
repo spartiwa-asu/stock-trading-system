@@ -503,32 +503,30 @@ def market_info():
 @app.route('/transactions')
 @login_required
 def transactions():
-    transactions = (
+    results = (
         db.session.query(FinancialTransaction, Stock)
-        .join(Stock, FinancialTransaction.stockId == Stock.stockId)
+        .outerjoin(Stock, FinancialTransaction.stockId == Stock.stockId)
         .filter(FinancialTransaction.userId == current_user.id)
-        .filter(
-            FinancialTransaction.type == "buy",
-            FinancialTransaction.status.in_(["completed", "cancelled"])
-        )
+        .filter(FinancialTransaction.status.in_(["completed", "cancelled"]))
         .order_by(FinancialTransaction.createdAt.desc())
         .all()
     )
 
-    transaction_data = []
-    for t, stock in transactions:
-        transaction_data.append({
-            "createdAt": t.createdAt,
-            "ticker": stock.ticker,
-            "stock_name": stock.name,
-            "type": t.type,
-            "status": t.status,
-            "quantity": t.quantity,
-            "price": t.price,
-            "amount": t.amount
+    transactions = []
+
+    for ft, stock in results:
+        transactions.append({
+            "createdAt": ft.createdAt,
+            "type": ft.type,
+            "status": ft.status,
+            "quantity": ft.quantity,
+            "price": ft.price,
+            "amount": ft.amount,
+            "ticker": stock.ticker if stock else None,
+            "stock_name": stock.name if stock else None
         })
 
-    return render_template("transactions.html", transactions=transaction_data)
+    return render_template("transactions.html", transactions=transactions)
 
 
 @app.route('/withdraw-deposit', methods=["GET", "POST"])

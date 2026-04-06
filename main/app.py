@@ -17,7 +17,7 @@ bcrypt = Bcrypt(app)
 
 #Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = \
-    'mysql+pymysql://root:password@localhost/auth_db'
+    'mysql+pymysql://root:Likhi123@localhost/auth_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'your-secret-key'
 
@@ -45,7 +45,7 @@ class Users(UserMixin, db.Model):
 
 class Portfolio(db.Model):
     portfolioId = db.Column(db.Integer, primary_key=True)
-    userId = db.Column(db.Integer, db.ForeignKey('users.id'), unique=True, nullable=False)
+    userId = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     financialTransactionId = db.Column(db.Integer, db.ForeignKey('financial_transaction.financialTransactionId'), nullable=False)
     stockName = db.Column(db.String(25), nullable=False)
     stockTicker = db.Column(db.String(25), nullable=False)
@@ -84,7 +84,7 @@ class Stock(db.Model):
 
 class FinancialTransaction(db.Model):
     financialTransactionId = db.Column(db.Integer, primary_key=True)
-    userId = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    userId = db.Column(db.Integer, db.ForeignKey('users.id'), unique=False, nullable=False)
     stockId = db.Column(db.Integer, db.ForeignKey('stock.stockId'), nullable=False)
     administratorId = db.Column(db.Integer, db.ForeignKey('administrator.id'), nullable=False)
     type = db.Column(db.String(10), nullable=False)
@@ -331,27 +331,17 @@ def portfolio():
             db.session.add(transaction)
             db.session.flush()
 
-            portfolio_entry = Portfolio.query.filter_by(
+            # ALWAYS create a new portfolio row for each buy
+            portfolio_entry = Portfolio(
                 userId=current_user.id,
-                stockTicker=stock.ticker
-            ).first()
-
-            if portfolio_entry:
-                portfolio_entry.quantity += quantity
-                portfolio_entry.currentMarketPrice = price
-                portfolio_entry.updatedAt = datetime.utcnow()
-                portfolio_entry.financialTransactionId = transaction.financialTransactionId
-            else:
-                portfolio_entry = Portfolio(
-                    userId=current_user.id,
-                    financialTransactionId=transaction.financialTransactionId,
-                    stockName=stock.name,
-                    stockTicker=stock.ticker,
-                    quantity=quantity,
-                    currentMarketPrice=price,
-                    updatedAt=datetime.utcnow()
-                )
-                db.session.add(portfolio_entry)
+                financialTransactionId=transaction.financialTransactionId,
+                stockName=stock.name,
+                stockTicker=stock.ticker,
+                quantity=quantity,
+                currentMarketPrice=price,
+                updatedAt=datetime.utcnow()
+            )
+            db.session.add(portfolio_entry)
 
             flash(f"Bought {quantity} share(s) of {stock.name} for ${shares_cost:.2f}", "success")
 
@@ -367,10 +357,11 @@ def portfolio():
                 flash("Stock not found.", "danger")
                 return redirect(url_for('portfolio'))
 
+            # sell from the oldest matching holding row
             portfolio_entry = Portfolio.query.filter_by(
                 userId=current_user.id,
                 stockTicker=stock_ticker
-            ).first()
+            ).order_by(Portfolio.createdAt.asc()).first()
 
             if not portfolio_entry or portfolio_entry.quantity < quantity:
                 flash("Not enough shares to sell!", "danger")

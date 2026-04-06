@@ -201,7 +201,6 @@
       <td>{{ stock.name }}</td>
       <td>${{ "%.2f"|format(stock.currentMarketPrice) }}</td>
       <td>{{ stock.volume }}</td>
-      <td>{{ stock.quantity }}</td>
 
       <td>
         <form method="POST" action="{{ url_for('portfolio') }}" class="d-flex gap-2">

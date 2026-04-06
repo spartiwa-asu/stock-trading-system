@@ -499,10 +499,37 @@ def update_stock_prices():
 def market_info():
     return render_template('market_info.html')
 
+
 @app.route('/transactions')
 @login_required
 def transactions():
-    return render_template('transactions.html')
+    transactions = (
+        db.session.query(FinancialTransaction, Stock)
+        .join(Stock, FinancialTransaction.stockId == Stock.stockId)
+        .filter(FinancialTransaction.userId == current_user.id)
+        .filter(
+            FinancialTransaction.type == "buy",
+            FinancialTransaction.status.in_(["completed", "cancelled"])
+        )
+        .order_by(FinancialTransaction.createdAt.desc())
+        .all()
+    )
+
+    transaction_data = []
+    for t, stock in transactions:
+        transaction_data.append({
+            "createdAt": t.createdAt,
+            "ticker": stock.ticker,
+            "stock_name": stock.name,
+            "type": t.type,
+            "status": t.status,
+            "quantity": t.quantity,
+            "price": t.price,
+            "amount": t.amount
+        })
+
+    return render_template("transactions.html", transactions=transaction_data)
+
 
 @app.route('/withdraw-deposit', methods=["GET", "POST"])
 @login_required

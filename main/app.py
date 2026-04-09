@@ -517,6 +517,41 @@ import random
 def update_stock_prices():
     with app.app_context():
         while True:
+            #for pending orders
+            if market_check(): 
+                pending_orders = FinancialTransaction.query.filter_by(status="pending").all()
+
+                for order in pending_orders:
+                    stock= db.session.get(Stock, order.stockId)
+                    user= db.session.get(Users, order.userId)
+
+                    if order.type == "buy":
+                        user.balance -= stock.currentMarketPrice * order.quantity
+                        existing = Portfolio.query.filter_by(userId=user.id, stockTicker=stock.ticker).first()
+                        if existing:
+                                existing.quantity += order.quantity
+                        else:
+                                db.session.add(Portfolio(
+                                    userId=order.userId,
+                                    financialTransactionId=order.financialTransactionId,
+                                    stockName=stock.name,
+                                    stockTicker=stock.ticker,
+                                    quantity=order.quantity,
+                                    currentMarketPrice=stock.currentMarketPrice,
+                                ))
+ 
+                    elif order.type == "sell":
+                        existing = Portfolio.query.filter_by(userId=user.id, stockTicker=stock.ticker).first()
+                        existing.quantity -= order.quantity
+                        user.balance += stock.currentMarketPrice * order.quantity
+                        if existing.quantity <= 0:
+                            db.session.delete(existing)
+                       
+                    order.status = "completed"
+
+                db.session.commit()
+
+           #pricegen 
             stocks = Stock.query.all()
 
             for stock in stocks:

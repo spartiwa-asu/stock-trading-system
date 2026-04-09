@@ -13,7 +13,7 @@
     <tbody>
       {% for schedule in market_schedule %}
       <tr>
-      <td>{{ schedule.startTime.strftime('%I:%M %p') }} - {{ schedule.endTime.strftime('%I:%M %p') }} ET</td>
+      <td>{{ schedule.startTime.strftime('%I:%M %p') }} - {{ schedule.endTime.strftime('%I:%M %p') }} </td>
       <td>{{ schedule.dayOfWeek }}</td>
     </tr>
       {% endfor %}

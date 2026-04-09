@@ -8,7 +8,7 @@ from flask_login import (
 login_required, current_user)
 from flask_bcrypt import Bcrypt
 from functools import wraps
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta, time
 import random
 from flask import flash
 
@@ -17,7 +17,7 @@ bcrypt = Bcrypt(app)
 
 #Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = \
-    'mysql+pymysql://root:Heer3481%40ift401@localhost/auth_db'
+    'mysql+pymysql://root:password@localhost/auth_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'your-secret-key'
 
@@ -67,25 +67,11 @@ class Stock(db.Model):
     updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
 
 
-#class OrderHistory(db.Model):
-    #orderId = db.Column(db.Integer, primary_key=True)
-    #stockId = db.Column(db.Integer, db.ForeignKey('stock.stockId'), nullable=False)
-    #userId = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    #administratorId = db.Column(db.Integer, db.ForeignKey('administrator.id'), nullable=False)
-    #type = db.Column(db.String(25), nullable=False)
-    #quantity = db.Column(db.Float, nullable=False)
-    #price = db.Column(db.Float, nullable=False)
-    #totalValue = db.Column(db.Float, nullable=False)
-    #status = db.Column(db.String(25), nullable=False)
-    #createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
-    #updatedAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
-
-
-
 class FinancialTransaction(db.Model):
     financialTransactionId = db.Column(db.Integer, primary_key=True)
     userId = db.Column(db.Integer, db.ForeignKey('users.id'), unique=False, nullable=False)
     stockId = db.Column(db.Integer, db.ForeignKey('stock.stockId'), nullable=True)
+    stockTicker = db.Column(db.String(25), nullable=True)
     administratorId = db.Column(db.Integer, db.ForeignKey('administrator.id'), nullable=True)
     type = db.Column(db.String(10), nullable=False)
     status = db.Column(db.String(25), nullable=False)
@@ -94,7 +80,6 @@ class FinancialTransaction(db.Model):
     amount = db.Column(db.Float, nullable=False)
     balance = db.Column(db.Float, nullable=False)
     createdAt = db.Column(db.DateTime, server_default=db.func.current_timestamp(), nullable=False)
-
 
 
 class Administrator(UserMixin, db.Model):
@@ -119,6 +104,29 @@ class MarketSchedule(db.Model):
     reason = db.Column(db.String(255), nullable=False)
 
 
+
+
+#market logic
+def market_check():
+    x = datetime.now()
+    today = x.date()
+    current_time = x.time()
+    day = x.strftime("%A")
+
+    holiday = MarketSchedule.query.filter(MarketSchedule.holidayDate == today).first()
+    if holiday:
+        return False
+
+    market_schedule = MarketSchedule.query.filter_by(dayOfWeek=day).first()
+    if not market_schedule:
+        return False
+    
+    return market_schedule.startTime <= current_time <= market_schedule.endTime
+
+
+
+
+
 # Initialize database
 with app.app_context():
     db.create_all()
@@ -135,6 +143,55 @@ with app.app_context():
         db.session.add(admin)
         db.session.commit()
         print("Admin created: username=admin, password=admin123")
+
+
+#market schedule:
+    if not MarketSchedule.query.first():
+        initial_schedule = []
+        
+        #dayofWeek, starttime, endtime, reason
+        strings = [("Monday", time(9, 0), time(17, 0), "Market is open"), 
+                   ("Tuesday", time(9, 0), time(17, 0), "Market is open"),
+                   ("Wednesday", time(9, 0), time(17, 0), "Market is open"),
+                   ("Thursday", time(9, 0), time(17, 0), "Market is open"),
+                   ("Friday", time(9, 0), time(17, 0), "Market is open"),
+                   ("Saturday", time(0, 0), time(0, 0), "Market is closed"),
+                   ("Sunday", time(0, 0), time(0, 0), "Market is closed")]
+           
+        for day, start, end, reason in strings:
+            initial_schedule.append(MarketSchedule(
+                dayOfWeek=day,
+                startTime=start,
+                endTime=end,
+                holidayDate=None,
+                reason=reason
+            ))
+
+
+        holidayDate= [(date(2026, 1, 1), "New Year's Day"), 
+                      (date(2026, 1, 19), "Martin Luther King Jr. Day"),
+                      (date(2026, 2, 16), "Presidents' Day"),
+                      (date(2026, 5, 25), "Memorial Day"),
+                      (date(2026, 6, 19), "Juneteenth"),
+                      (date(2026, 7, 3), "Independence Day"),
+                      (date(2026, 9, 7), "Labor Day"),
+                      (date(2026, 10, 12), "Columbus Day"),
+                      (date(2026, 11, 11), "Veterans Day"),
+                      (date(2026, 11, 26), "Thanksgiving Day"),
+                      (date(2026, 12, 25), "Christmas Day")]
+
+        for hdate, hname in holidayDate:
+            initial_schedule.append(MarketSchedule(
+                dayOfWeek="Holiday",
+                startTime=time(0, 0),
+                endTime=time(0, 0),
+                holidayDate=hdate,
+                reason=hname
+            ))
+
+        db.session.add_all(initial_schedule)
+        db.session.commit()
+
 
 
 # User loader 
@@ -161,6 +218,7 @@ def load_user(user_id):
         return Users.query.get(actual_id)
 
     return None
+
 
 
 #default route
@@ -238,6 +296,9 @@ from datetime import datetime
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 
+
+
+
 @app.route('/portfolio', methods=['GET', 'POST'])
 @login_required
 def portfolio():
@@ -246,7 +307,26 @@ def portfolio():
     if request.method == 'POST':
         action = request.form.get("action")
         quantity = request.form.get("quantity", type=float)
-        order_status = request.form.get("order_status", "completed")
+
+        if action == "cancel":
+            transaction_id = request.form.get("transaction_id", type=int)
+            transaction = db.session.get(FinancialTransaction, transaction_id)
+
+            if not transaction or transaction.userId != current_user.id or transaction.status != "pending":
+                flash("Invalid transaction to cancel.", "danger")
+                return redirect(url_for('portfolio'))
+
+            transaction.status = "cancelled"
+
+            if transaction.type == "buy":
+                flash(f"Your buy order for {transaction.quantity} share(s) of {db.session.get(Stock, transaction.stockId).name} has been cancelled.", "danger")
+                
+
+            elif transaction.type == "sell":
+                flash(f"Your sell order for {transaction.quantity} share(s) of {db.session.get(Stock, transaction.stockId).name} has been cancelled.", "danger")
+
+            db.session.commit()
+            return redirect(url_for('portfolio'))
 
         if not action or quantity is None or quantity <= 0:
             flash("Please enter valid order details.", "danger")
@@ -271,17 +351,12 @@ def portfolio():
                 flash("Not enough cash!", "danger")
                 return redirect(url_for('portfolio'))
 
-            if order_status == "pending":
-                flash(
-                    f"Pending order: Do you wish to purchase {quantity} share(s) of "
-                    f"{stock.name} for ${shares_cost:.2f}? "
-                    f"Confirm by resubmitting with status 'completed'.",
-                    "warning"
-                )
 
+            if not market_check():
                 transaction = FinancialTransaction(
                     stockId=stock.stockId,
                     userId=current_user.id,
+                    stockTicker=stock.ticker,
                     administratorId=1,
                     type="buy",
                     status="pending",
@@ -292,34 +367,16 @@ def portfolio():
                 )
                 db.session.add(transaction)
                 db.session.commit()
+                flash(f"Market is closed. Your order to buy {quantity} share(s) of {stock.name} has been placed as pending. It will be executed when the market opens.", "warning")
                 return redirect(url_for('portfolio'))
 
-            if order_status == "cancelled":
-                transaction = FinancialTransaction(
-                    stockId=stock.stockId,
-                    userId=current_user.id,
-                    administratorId=1,
-                    type="buy",
-                    status="cancelled",
-                    quantity=quantity,
-                    price=price,
-                    amount=shares_cost,
-                    balance=current_user.balance
-                )
-                db.session.add(transaction)
-                db.session.commit()
-                flash(
-                    f"Your buy order for {quantity} share(s) of {stock.name} "
-                    f"(${shares_cost:.2f}) has been cancelled.",
-                    "danger"
-                )
-                return redirect(url_for('portfolio'))
 
             current_user.balance -= shares_cost
 
             transaction = FinancialTransaction(
                 stockId=stock.stockId,
                 userId=current_user.id,
+                stockTicker=stock.ticker,
                 administratorId=1,
                 type="buy",
                 status="completed",
@@ -379,16 +436,11 @@ def portfolio():
             price = stock.currentMarketPrice
             shares_cost = price * quantity
 
-            if order_status == "pending":
-                flash(
-                    f"Pending order: Do you wish to sell {quantity} share(s) of "
-                    f"{stock.name} for ${shares_cost:.2f}? "
-                    f"Confirm by resubmitting with status 'completed'.",
-                    "warning"
-                )
+            if not market_check():
                 transaction = FinancialTransaction(
                     stockId=stock.stockId,
                     userId=current_user.id,
+                    stockTicker=stock.ticker,
                     administratorId=1,
                     type="sell",
                     status="pending",
@@ -399,27 +451,7 @@ def portfolio():
                 )
                 db.session.add(transaction)
                 db.session.commit()
-                return redirect(url_for('portfolio'))
-
-            if order_status == "cancelled":
-                transaction = FinancialTransaction(
-                    stockId=stock.stockId,
-                    userId=current_user.id,
-                    administratorId=1,
-                    type="sell",
-                    status="cancelled",
-                    quantity=quantity,
-                    price=price,
-                    amount=shares_cost,
-                    balance=current_user.balance
-                )
-                db.session.add(transaction)
-                db.session.commit()
-                flash(
-                    f"Your sell order for {quantity} share(s) of {stock.name} "
-                    f"(${shares_cost:.2f}) has been cancelled.",
-                    "danger"
-                )
+                flash(f"Market is closed. Your order to sell {quantity} share(s) of {stock.name} has been placed as pending. It will be executed when the market opens.", "warning")
                 return redirect(url_for('portfolio'))
 
             current_user.balance += shares_cost
@@ -427,6 +459,7 @@ def portfolio():
             transaction = FinancialTransaction(
                 stockId=stock.stockId,
                 userId=current_user.id,
+                stockTicker=stock.ticker,
                 administratorId=1,
                 type="sell",
                 status="completed",
@@ -456,6 +489,10 @@ def portfolio():
         return redirect(url_for('portfolio'))
 
     portfolio_items = Portfolio.query.filter_by(userId=current_user.id).all()
+    pending_orders= FinancialTransaction.query.filter_by(userId=current_user.id, status="pending").all()
+    for order in pending_orders:
+        stock = db.session.get(Stock, order.stockId)
+        order.stock_name = stock.name if stock else "Unknown Stock"
 
     portfolio_total_value = sum(
         item.quantity * item.currentMarketPrice for item in portfolio_items
@@ -467,6 +504,7 @@ def portfolio():
         'portfolio.html',
         stocks=stocks,
         portfolio_items=portfolio_items,
+        pending_orders=pending_orders,
         current_user=current_user,
         portfolio_total_value=portfolio_total_value,
         total_account_value=total_account_value
@@ -487,6 +525,11 @@ def update_stock_prices():
                 new_price = base_price * (1 + percent_change)
                 stock.currentMarketPrice = round(max(1, new_price), 2)
 
+                portfolios= Portfolio.query.filter_by(stockTicker=stock.ticker).all()
+                for portfolio in portfolios:
+                    portfolio.currentMarketPrice = stock.currentMarketPrice
+                    portfolio.updatedAt = datetime.utcnow()
+
             db.session.commit()
             print("Stock prices updated")
 
@@ -497,7 +540,9 @@ def update_stock_prices():
 @app.route('/market_info')
 @login_required
 def market_info():
-    return render_template('market_info.html')
+    market_schedule = MarketSchedule.query.filter(MarketSchedule.holidayDate == None).all()
+    holiday = MarketSchedule.query.filter(MarketSchedule.holidayDate != None).all()
+    return render_template('market_info.html', market_schedule=market_schedule, holiday=holiday)
 
 
 @app.route('/transactions')
@@ -507,7 +552,7 @@ def transactions():
         db.session.query(FinancialTransaction, Stock)
         .outerjoin(Stock, FinancialTransaction.stockId == Stock.stockId)
         .filter(FinancialTransaction.userId == current_user.id)
-        .filter(FinancialTransaction.status.in_(["completed", "cancelled"]))
+        .filter(FinancialTransaction.status.in_(["completed", "cancelled", "pending"]))
         .order_by(FinancialTransaction.createdAt.desc())
         .all()
     )
@@ -555,6 +600,7 @@ def withdraw_deposit():
                 userId=current_user.id,
                 stockId=None,
                 administratorId=None,
+                stockTicker=None,
                 type="withdraw",
                 status="completed",
                 quantity=None,
@@ -571,6 +617,7 @@ def withdraw_deposit():
             transaction = FinancialTransaction(
                 userId=current_user.id,
                 stockId=None,
+                stockTicker=None,
                 administratorId=None,
                 type="deposit",
                 status="completed",
@@ -598,6 +645,30 @@ def admin_dashboard():
         return redirect(url_for("home"))
 
     if request.method == "POST":
+        action = request.form.get("action")
+        if action == "edit_market_schedule":
+            schedule_id = request.form.get("schedule_id", type=int)
+            start_time_str = request.form.get("start_time")
+            end_time_str = request.form.get("end_time")
+            schedule = db.session.get(MarketSchedule, schedule_id)
+            schedule.startTime = datetime.strptime(start_time_str, "%H:%M").time()
+            schedule.endTime = datetime.strptime(end_time_str, "%H:%M").time()
+            db.session.commit()
+            flash("Schedule updated successfully.", "success")
+            return redirect(url_for("admin_dashboard")) 
+        
+        if action == "edit_holiday":
+            schedule_id = request.form.get("schedule_id", type=int)
+            reason = request.form.get("reason")
+            holiday_date= request.form.get("holiday_date")
+
+            schedule= db.session.get(MarketSchedule, schedule_id)
+            schedule.reason = reason
+            schedule.holidayDate = datetime.strptime(holiday_date, "%Y-%m-%d").date()
+            db.session.commit()
+            flash("Holiday updated successfully.", "success")
+            return redirect(url_for("admin_dashboard")) 
+
         name = request.form.get("name")
         ticker = request.form.get("ticker")
         init_stock_price = request.form.get("init_stock_price", type=float)
@@ -635,7 +706,9 @@ def admin_dashboard():
         return redirect(url_for("admin_dashboard"))
 
     stocks = Stock.query.order_by(Stock.stockId.desc()).all()
-    return render_template("admin_dashboard.html", stocks=stocks)
+    market_schedule = MarketSchedule.query.filter(MarketSchedule.holidayDate == None).all()
+    holiday = MarketSchedule.query.filter(MarketSchedule.holidayDate != None).all()
+    return render_template("admin_dashboard.html", stocks=stocks, market_schedule=market_schedule, holiday=holiday)
 
 if __name__ == '__main__':
     price_thread = threading.Thread(target=update_stock_prices)

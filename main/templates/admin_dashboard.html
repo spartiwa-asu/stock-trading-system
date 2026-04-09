@@ -4,14 +4,14 @@
 
 <div class="container mt-3">
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }} alert-dismissible" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
     {% endwith %}
 </div>
 
@@ -52,25 +52,23 @@
                 <th>Name</th>
                 <th>Ticker</th>
                 <th>Initial Price</th>
-                <th>Current Price</th>
                 <th>Volume</th>
             </tr>
         </thead>
         <tbody>
             {% if stocks %}
-                {% for stock in stocks %}
-                <tr>
-                    <td>{{ stock.name }}</td>
-                    <td>{{ stock.ticker }}</td>
-                    <td>{{ stock.initStockPrice }}</td>
-                    <td>{{ stock.currentMarketPrice }}</td>
-                    <td>{{ stock.volume }}</td>
-                </tr>
-                {% endfor %}
+            {% for stock in stocks %}
+            <tr>
+                <td>{{ stock.name }}</td>
+                <td>{{ stock.ticker }}</td>
+                <td>{{ stock.initStockPrice }}</td>
+                <td>{{ stock.volume }}</td>
+            </tr>
+            {% endfor %}
             {% else %}
-                <tr>
-                    <td colspan="6" class="text-center">No stocks added yet.</td>
-                </tr>
+            <tr>
+                <td colspan="4" class="text-center">No stocks added yet.</td>
+            </tr>
             {% endif %}
         </tbody>
     </table>
@@ -85,13 +83,56 @@
             </tr>
         </thead>
         <tbody>
+            {% for schedule in market_schedule %}
             <tr>
-                <td>9:30 AM - 4:00 PM ET</td>
-                <td>Monday-Friday</td>
-                <td>---</td>
+                <form method="POST" action="{{ url_for('admin_dashboard') }}">
+                    <input type="hidden" name="action" value="edit_market_schedule">
+                    <input type="hidden" name="schedule_id" value="{{ schedule.scheduleId }}">
+                    <td>{{schedule.startTime.strftime('%H:%M')}} - {{schedule.endTime.strftime('%H:%M')}}</td>
+                    <td>{{ schedule.dayOfWeek }}</td>
+                    <td class="d-flex gap-2 align-items-center">
+                        <input type="time" name="start_time" class="form-control form-control-sm" style="width: 120px;"> 
+                        <span>-</span>
+                        <input type="time" name="end_time" class="form-control form-control-sm" style="width: 120px;">
+                        <button type="submit" class="btn btn-sm btn-dark">Save</button>
+                    </td>
+                </form>
             </tr>
+            {% endfor %}
         </tbody>
     </table>
-</div>
+
+    <h3 class="mt-5">Holiday Schedule</h3>
+    <table class="table table-bordered border-dark mt-3">
+        <thead class="table-dark">
+            <tr>
+                <th>Holiday</th>
+                <th>Date</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for h in holiday %}
+            <tr>
+                <form method="POST" action="{{ url_for('admin_dashboard') }}">
+                    <input type="hidden" name="action" value="edit_holiday">
+                    <input type="hidden" name="schedule_id" value="{{ h.scheduleId }}">
+                    <td>{{ h.reason }}</td>
+                    <td>{{ h.holidayDate.strftime('%B-%d-%Y') }}</td>
+                    <td class="d-flex gap-2 align-items-center">
+                        <input type="text" name="reason" placeholder= "Holiday Name" class="form-control form-control-sm" value="{{ h.reason }}">
+                        <input type="date" name="holiday_date" class="form-control form-control-sm" value="{{ h.holidayDate.strftime('%Y-%m-%d') }}">
+                        <button type="submit" class="btn btn-sm btn-dark">Save</button>
+                    </td>
+                </form>
+            </tr>
+            {% endfor %}
+            {% if not holiday %}
+            <tr>
+                <td colspan="3" class="text-center">No holidays scheduled.</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
 
 {% endblock %}

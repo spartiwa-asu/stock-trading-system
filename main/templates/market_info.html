@@ -5,13 +5,41 @@
   <h1>Market Info</h1>
   <table class="table table-bordered border border-dark">
     <thead class="table-dark">
+      <tr>
       <th>Market Hours</th>
       <th>Market Days</th>
+      </tr>
     </thead>
-    <tr>
-      <td>9:30 AM - 4:00 PM ET</td>
-      <td>Monday-Friday</td>
+    <tbody>
+      {% for schedule in market_schedule %}
+      <tr>
+      <td>{{ schedule.startTime.strftime('%I:%M %p') }} - {{ schedule.endTime.strftime('%I:%M %p') }} ET</td>
+      <td>{{ schedule.dayOfWeek }}</td>
     </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <h1>Holiday Schedule</h1>
+  <table class="table table-bordered border border-dark">
+    <thead class="table-dark">
+      <tr>
+        <th>Holiday</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for h in holiday %}
+      <tr>
+        <td>{{ h.reason }}</td>
+        <td>{{ h.holidayDate.strftime('%B %d, %Y') }}</td>
+      </tr>
+      {% endfor %}
+      {% if not holiday %}
+      <tr>
+        <td colspan="2" class="text-center">No holidays scheduled.</td>
+      </tr>
+      {% endif %}
+    </tbody>
   </table>
 </div>
 {% endblock %}

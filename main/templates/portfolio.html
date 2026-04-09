@@ -53,6 +53,7 @@
         <th>Ticker</th>
         <th>Current Market Price</th>
         <th>Shares Owned</th>
+        <th>Action</th>
       </tr>
     </thead>
     <tbody>
@@ -62,10 +63,18 @@
         <td>{{ item.stockTicker }}</td>
         <td>${{ "%.2f"|format(item.currentMarketPrice) }}</td>
         <td>{{ item.quantity }}</td>
+        <td>
+          <form method="POST" action="{{ url_for('portfolio') }}" class="d-flex gap-2">
+            <input type="hidden" name="action" value="sell">
+            <input type="hidden" name="stock_ticker" value="{{ item.stockTicker }}">
+            <input type="number" name="quantity" min="0.01" step="0.01" placeholder="Qty" class="form-control form-control-sm" required style="width: 90px;">
+            <button type="submit" class="btn btn-danger btn-sm">Sell</button>
+          </form> 
+        </td>
       </tr>
       {% else %}
       <tr>
-        <td colspan="4" class="text-center">No portfolio items yet.</td>
+        <td colspan="5" class="text-center">No portfolio items yet.</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -76,18 +85,17 @@
     <tr>
       <th>Stock Name</th>
       <th>Ticker</th>
-      <th>Action</th>
+      <th>Type</th>
       <th>Price</th>
       <th>Quantity</th>
       <th>Total</th>
-      <th>Status</th>
-      <th>Cancel</th>
+      <th>Action</th>
     </tr>
   </thead>
   <tbody>
     {% for order in pending_orders %}
     <tr class="table-warning">
-      <td>{{ order.stockName }}</td>
+      <td>{{ order.stock_name }}</td>
       <td>{{ order.stockTicker }}</td>
       <td>
         <span class="badge {% if order.type == 'buy' %}bg-success{% else %}bg-danger{% endif %}">
@@ -98,12 +106,8 @@
       <td>{{ order.quantity }}</td>
       <td>${{ "%.2f"|format(order.amount) }}</td>
       <td>
-        <span class="badge bg-warning text-dark">
-          {{ order.status.upper() }}
-        </span>
-      </td>
-      <td>
-        <form method="POST" action="{{ url_for('cancel_pending_order') }}" class="d-inline">
+        <form method="POST" action="{{ url_for('portfolio') }}" class="d-inline">
+          <input type="hidden" name="action" value="cancel">
           <input type="hidden" name="transaction_id" value="{{ order.financialTransactionId }}">
           <button type="submit" class="btn btn-sm btn-danger">
             Cancel
@@ -113,84 +117,18 @@
     </tr>
     {% else %}
     <tr>
-      <td colspan="8" class="text-center">No pending orders.</td>
+      <td colspan="7" class="text-center">No pending orders.</td>
     </tr>
     {% endfor %}
   </tbody>
 </table>
-<!-- Buy/Sell Forms 
-  <div class="row g-4 mb-5">
-    <div class="col-md-6">
-      <div class="card shadow-sm h-100">
-        <div class="card-body">
-          <h3 class="h5 mb-3">Sell Stock</h3>
-          <form method="POST">
-            <div class="mb-3">
-              <label for="stock_sell" class="form-label">Choose stock</label>
-              <select name="stock_ticker" class="form-select" id="stock_sell" required>
-                <option value="">Choose stock to sell</option>
-                {% for item in portfolio_items %}
-                <option value="{{ item.stockTicker }}">
-                  {{ item.stockName }} ({{ item.stockTicker }}) - Owned: {{ item.quantity }}
-                </option>
-                {% endfor %}
-              </select>
-            </div>
 
-            <div class="mb-3">
-              <label for="quantity_sell" class="form-label">Shares to Sell</label>
-              <input type="number" class="form-control" id="quantity_sell" name="quantity"
-                placeholder="Enter shares to sell" min="1" step="1" required>
-            </div>
-
-            <button type="submit" class="btn btn-danger" name="action" value="sell">
-              Sell Stock
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-6">
-      <div class="card shadow-sm h-100">
-        <div class="card-body">
-          <h3 class="h5 mb-3">Buy Stock</h3>
-          <form method="POST">
-            <div class="mb-3">
-              <label for="stock_buy" class="form-label">Choose stock</label>
-              <select name="stock_id" class="form-select" id="stock_buy" required>
-                <option value="">Choose stock to buy</option>
-                {% for stock in stocks %}
-                <option value="{{ stock.stockId }}">
-                  {{ stock.name }} (${{ "%.2f"|format(stock.currentMarketPrice) }})
-                </option>
-                {% endfor %}
-              </select>
-            </div> 
-
-            <div class="mb-3">
-              <label for="quantity_buy" class="form-label">Shares to Buy</label>
-              <input type="number" class="form-control" id="quantity_buy" name="quantity"
-                placeholder="Enter shares to buy" min="1" step="1" required>
-            </div>
-
-            <button type="submit" class="btn btn-success" name="action" value="buy">
-              Buy Stock
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-  
---->
 <h2 class="mb-3">Market Overview</h2>
 <table class="table table-striped table-bordered border-dark">
   <thead class="table-dark">
     <tr>
       <th>Stock</th>
       <th>Current Price</th>
-      <th>Volume</th>
       <th>Buy</th>
       <th>Sell</th>
     </tr>
@@ -200,13 +138,11 @@
     <tr>
       <td>{{ stock.name }}</td>
       <td>${{ "%.2f"|format(stock.currentMarketPrice) }}</td>
-      <td>{{ stock.volume }}</td>
 
       <td>
         <form method="POST" action="{{ url_for('portfolio') }}" class="d-flex gap-2">
           <input type="hidden" name="action" value="buy">
           <input type="hidden" name="stock_id" value="{{ stock.stockId }}">
-          <input type="hidden" name="order_status" value="completed">
           <input type="number" name="quantity" min="0.01" step="0.01" placeholder="Qty" class="form-control form-control-sm" required style="width: 90px;">
           <button type="submit" class="btn btn-success btn-sm">Buy</button>
         </form>
@@ -216,7 +152,6 @@
         <form method="POST" action="{{ url_for('portfolio') }}" class="d-flex gap-2">
           <input type="hidden" name="action" value="sell">
           <input type="hidden" name="stock_ticker" value="{{ stock.ticker }}">
-          <input type="hidden" name="order_status" value="completed">
           <input type="number" name="quantity" min="0.01" step="0.01" placeholder="Qty" class="form-control form-control-sm" required style="width: 90px;">
           <button type="submit" class="btn btn-danger btn-sm">Sell</button>
         </form>

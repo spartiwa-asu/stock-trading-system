@@ -568,7 +568,7 @@ def update_stock_prices():
             db.session.commit()
             print("Stock prices updated")
 
-            time.sleep(60)
+            time.sleep(15)
 
 
 

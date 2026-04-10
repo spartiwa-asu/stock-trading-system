@@ -512,7 +512,7 @@ def portfolio():
         total_account_value=total_account_value
     )
 
-import time
+import time_module
 import threading
 import random
 
@@ -570,7 +570,7 @@ def update_stock_prices():
             db.session.commit()
             print("Stock prices updated")
 
-            time.sleep(15)
+            time_module.sleep(15)
 
 
 

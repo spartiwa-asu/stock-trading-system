@@ -717,7 +717,16 @@ def admin_dashboard():
             if not holiday_name or not holiday_date:
                 flash("Holiday name and date are required.", "danger")
                 return redirect(url_for("admin_dashboard"))
+            
+            parsed_holiday_date = datetime.strptime(holiday_date, "%Y-%m-%d").date()
+            existing_holiday = MarketSchedule.query.filter_by(
+              holidayDate=parsed_holiday_date
+            ).first()
 
+            if existing_holiday:
+                flash("A holiday already exists on that date.", "danger")
+                return redirect(url_for("admin_dashboard"))
+            
             new_holiday = MarketSchedule(
                 dayOfWeek="Holiday",
                 holidayDate=datetime.strptime(holiday_date, "%Y-%m-%d").date(),

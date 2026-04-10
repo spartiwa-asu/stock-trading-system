@@ -501,7 +501,8 @@ def portfolio():
     )
 
     total_account_value = current_user.balance + portfolio_total_value
-
+    market_status = market_check()
+    
     return render_template(
         'portfolio.html',
         stocks=stocks,

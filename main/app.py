@@ -512,7 +512,7 @@ def portfolio():
         total_account_value=total_account_value
     )
 
-import time_module
+import time as time_module
 import threading
 import random
 

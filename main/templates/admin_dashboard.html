@@ -101,6 +101,30 @@
         </tbody>
     </table>
 
+    <h3 class="mt-5">Create Holiday</h3>
+    <div class="card p-4 mt-3">
+        <form method="POST" action="{{ url_for('admin_dashboard') }}">
+            <input type="hidden" name="action" value="create_holiday">
+
+            <div class="mb-3">
+                <label for="holiday_name">Holiday Name</label>
+                <input type="text" name="holiday_name" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="holiday_date">Holiday Date</label>
+                <input type="date" name="holiday_date" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="description">Description</label>
+                <textarea name="description" class="form-control" rows="3"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-dark">Add Holiday</button>
+        </form>
+    </div>
+
     <h3 class="mt-5">Holiday Schedule</h3>
     <table class="table table-bordered border-dark mt-3">
         <thead class="table-dark">

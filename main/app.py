@@ -187,7 +187,8 @@ with app.app_context():
                 startTime=time(0, 0),
                 endTime=time(0, 0),
                 holidayDate=hdate,
-                reason=hname
+                reason=hname,
+                description=None,
             ))
 
         db.session.add_all(initial_schedule)
@@ -682,6 +683,7 @@ def admin_dashboard():
 
     if request.method == "POST":
         action = request.form.get("action")
+
         if action == "edit_market_schedule":
             schedule_id = request.form.get("schedule_id", type=int)
             start_time_str = request.form.get("start_time")
@@ -691,19 +693,43 @@ def admin_dashboard():
             schedule.endTime = datetime.strptime(end_time_str, "%H:%M").time()
             db.session.commit()
             flash("Schedule updated successfully.", "success")
-            return redirect(url_for("admin_dashboard")) 
-        
+            return redirect(url_for("admin_dashboard"))
+
         if action == "edit_holiday":
             schedule_id = request.form.get("schedule_id", type=int)
             reason = request.form.get("reason")
-            holiday_date= request.form.get("holiday_date")
-
-            schedule= db.session.get(MarketSchedule, schedule_id)
+            holiday_date = request.form.get("holiday_date")
+            description = request.form.get("description")
+            schedule = db.session.get(MarketSchedule, schedule_id)
             schedule.reason = reason
             schedule.holidayDate = datetime.strptime(holiday_date, "%Y-%m-%d").date()
+            schedule.description = description
             db.session.commit()
             flash("Holiday updated successfully.", "success")
-            return redirect(url_for("admin_dashboard")) 
+            return redirect(url_for("admin_dashboard"))
+
+        if action == "create_holiday":
+            holiday_name = request.form.get("holiday_name")
+            holiday_date = request.form.get("holiday_date")
+            description = request.form.get("description")
+
+            if not holiday_name or not holiday_date:
+                flash("Holiday name and date are required.", "danger")
+                return redirect(url_for("admin_dashboard"))
+
+            new_holiday = MarketSchedule(
+                dayOfWeek="Holiday",
+                holidayDate=datetime.strptime(holiday_date, "%Y-%m-%d").date(),
+                startTime=time(0, 0),
+                endTime=time(0, 0),
+                reason=holiday_name,
+                description=description,
+            )
+
+            db.session.add(new_holiday)
+            db.session.commit()
+            flash("Holiday created successfully.", "success")
+            return redirect(url_for("admin_dashboard"))
 
         name = request.form.get("name")
         ticker = request.form.get("ticker")
@@ -745,6 +771,7 @@ def admin_dashboard():
     market_schedule = MarketSchedule.query.filter(MarketSchedule.holidayDate == None).all()
     holiday = MarketSchedule.query.filter(MarketSchedule.holidayDate != None).all()
     return render_template("admin_dashboard.html", stocks=stocks, market_schedule=market_schedule, holiday=holiday)
+
 
 if __name__ == '__main__':
     price_thread = threading.Thread(target=update_stock_prices)

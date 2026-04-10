@@ -510,7 +510,8 @@ def portfolio():
         pending_orders=pending_orders,
         current_user=current_user,
         portfolio_total_value=portfolio_total_value,
-        total_account_value=total_account_value
+        total_account_value=total_account_value,
+        market_status=market_status
     )
 
 import time as time_module
@@ -717,19 +718,19 @@ def admin_dashboard():
             if not holiday_name or not holiday_date:
                 flash("Holiday name and date are required.", "danger")
                 return redirect(url_for("admin_dashboard"))
-            
+
             parsed_holiday_date = datetime.strptime(holiday_date, "%Y-%m-%d").date()
             existing_holiday = MarketSchedule.query.filter_by(
-              holidayDate=parsed_holiday_date
+                holidayDate=parsed_holiday_date
             ).first()
 
             if existing_holiday:
                 flash("A holiday already exists on that date.", "danger")
                 return redirect(url_for("admin_dashboard"))
-            
+
             new_holiday = MarketSchedule(
                 dayOfWeek="Holiday",
-                holidayDate=datetime.strptime(holiday_date, "%Y-%m-%d").date(),
+                holidayDate=parsed_holiday_date,
                 startTime=time(0, 0),
                 endTime=time(0, 0),
                 reason=holiday_name,
@@ -739,6 +740,19 @@ def admin_dashboard():
             db.session.add(new_holiday)
             db.session.commit()
             flash("Holiday created successfully.", "success")
+            return redirect(url_for("admin_dashboard"))
+
+        if action == "delete_holiday":
+            schedule_id = request.form.get("schedule_id", type=int)
+            schedule = db.session.get(MarketSchedule, schedule_id)
+
+            if not schedule or schedule.holidayDate is None:
+                flash("Holiday not found.", "danger")
+                return redirect(url_for("admin_dashboard"))
+
+            db.session.delete(schedule)
+            db.session.commit()
+            flash("Holiday deleted successfully.", "success")
             return redirect(url_for("admin_dashboard"))
 
         name = request.form.get("name")
@@ -779,9 +793,16 @@ def admin_dashboard():
 
     stocks = Stock.query.order_by(Stock.stockId.desc()).all()
     market_schedule = MarketSchedule.query.filter(MarketSchedule.holidayDate == None).all()
-    holiday = MarketSchedule.query.filter(MarketSchedule.holidayDate != None).order_by(MarketSchedule.holidayDate.asc()).all()
-    return render_template("admin_dashboard.html", stocks=stocks, market_schedule=market_schedule, holiday=holiday)
+    holiday = MarketSchedule.query.filter(
+        MarketSchedule.holidayDate != None
+    ).order_by(MarketSchedule.holidayDate.asc()).all()
 
+    return render_template(
+        "admin_dashboard.html",
+        stocks=stocks,
+        market_schedule=market_schedule,
+        holiday=holiday
+    )
 
 if __name__ == '__main__':
     price_thread = threading.Thread(target=update_stock_prices)

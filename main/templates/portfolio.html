@@ -80,7 +80,8 @@
         <td>${{ "%.2f"|format(item.currentMarketPrice) }}</td>
         <td>{{ item.quantity }}</td>
         <td>
-          <form method="POST" action="{{ url_for('portfolio') }}" class="d-flex gap-2">
+          <form method="POST" action="{{ url_for('portfolio') }}" class="d-flex gap-2"
+            onsubmit="return confirm('Are you sure you want to sell this stock?')">
             <input type="hidden" name="action" value="sell">
             <input type="hidden" name="stock_ticker" value="{{ item.stockTicker }}">
             <input type="number" name="quantity" min="0.01" step="0.01" placeholder="Qty" class="form-control form-control-sm" required style="width: 90px;">
@@ -156,7 +157,8 @@
       <td>${{ "%.2f"|format(stock.currentMarketPrice) }}</td>
 
       <td>
-        <form method="POST" action="{{ url_for('portfolio') }}" class="d-flex gap-2">
+        <form method="POST" action="{{ url_for('portfolio') }}" class="d-flex gap-2"
+          onsubmit="return confirm('Are you sure you want to buy this stock?')">
           <input type="hidden" name="action" value="buy">
           <input type="hidden" name="stock_id" value="{{ stock.stockId }}">
           <input type="number" name="quantity" min="0.01" step="0.01" placeholder="Qty" class="form-control form-control-sm" required style="width: 90px;">
@@ -165,7 +167,8 @@
       </td>
 
       <td>
-        <form method="POST" action="{{ url_for('portfolio') }}" class="d-flex gap-2">
+        <form method="POST" action="{{ url_for('portfolio') }}" class="d-flex gap-2"
+          onsubmit="return confirm('Are you sure you want to sell this stock?')">
           <input type="hidden" name="action" value="sell">
           <input type="hidden" name="stock_ticker" value="{{ stock.ticker }}">
           <input type="number" name="quantity" min="0.01" step="0.01" placeholder="Qty" class="form-control form-control-sm" required style="width: 90px;">

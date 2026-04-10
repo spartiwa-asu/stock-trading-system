@@ -79,6 +79,7 @@
             <tr>
                 <th>Market Hours</th>
                 <th>Market Days</th>
+                <th>Action</th>
             </tr>
         </thead>
         <tbody>
@@ -131,19 +132,26 @@
             <tr>
                 <th>Holiday</th>
                 <th>Date</th>
+                <th>Delete</th>
             </tr>
-        </thead>
-        <tbody>
-            {% for h in holiday %}
-            <tr>
-                <td>{{ h.reason }}</td>
-                <td>{{ h.holidayDate.strftime('%B-%d-%Y') }}</td>
-            </tr>
-
-            {% endfor %}
+            </thead>
+            <tbody>
+                {% for h in holiday %}
+                <tr>
+                    <td>{{ h.reason }}</td>
+                    <td>{{ h.holidayDate.strftime('%B-%d-%Y') }}</td>
+                    <td>
+                        <form method="POST" action="{{ url_for('admin_dashboard') }}" class="d-inline">
+                            <input type="hidden" name="action" value="delete_holiday">
+                            <input type="hidden" name="schedule_id" value="{{ h.scheduleId }}">
+                            <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
             {% if not holiday %}
             <tr>
-                <td colspan="2" class="text-center">No holidays scheduled.</td>
+                <td colspan="3" class="text-center">No holidays scheduled.</td>
             </tr>
             {% endif %}
         </tbody>

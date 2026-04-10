@@ -580,7 +580,7 @@ def update_stock_prices():
 @login_required
 def market_info():
     market_schedule = MarketSchedule.query.filter(MarketSchedule.holidayDate == None).all()
-    holiday = MarketSchedule.query.filter(MarketSchedule.holidayDate != None).all()
+    holiday = MarketSchedule.query.filter(MarketSchedule.holidayDate != None).order_by(MarketSchedule.holidayDate.asc()).all()
     return render_template('market_info.html', market_schedule=market_schedule, holiday=holiday)
 
 

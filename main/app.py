@@ -769,7 +769,7 @@ def admin_dashboard():
 
     stocks = Stock.query.order_by(Stock.stockId.desc()).all()
     market_schedule = MarketSchedule.query.filter(MarketSchedule.holidayDate == None).all()
-    holiday = MarketSchedule.query.filter(MarketSchedule.holidayDate != None).all()
+    holiday = MarketSchedule.query.filter(MarketSchedule.holidayDate != None).order_by(MarketSchedule.holidayDate.asc()).all()
     return render_template("admin_dashboard.html", stocks=stocks, market_schedule=market_schedule, holiday=holiday)
 
 

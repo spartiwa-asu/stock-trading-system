@@ -79,7 +79,6 @@
             <tr>
                 <th>Market Hours</th>
                 <th>Market Days</th>
-                <th>Action</th>
             </tr>
         </thead>
         <tbody>
@@ -88,10 +87,10 @@
                 <form method="POST" action="{{ url_for('admin_dashboard') }}">
                     <input type="hidden" name="action" value="edit_market_schedule">
                     <input type="hidden" name="schedule_id" value="{{ schedule.scheduleId }}">
-                    <td>{{schedule.startTime.strftime('%H:%M')}} - {{schedule.endTime.strftime('%H:%M')}}</td>
+                    <td>{{ schedule.startTime.strftime('%H:%M') }} - {{ schedule.endTime.strftime('%H:%M') }}</td>
                     <td>{{ schedule.dayOfWeek }}</td>
                     <td class="d-flex gap-2 align-items-center">
-                        <input type="time" name="start_time" class="form-control form-control-sm" style="width: 120px;"> 
+                        <input type="time" name="start_time" class="form-control form-control-sm" style="width: 120px;">
                         <span>-</span>
                         <input type="time" name="end_time" class="form-control form-control-sm" style="width: 120px;">
                         <button type="submit" class="btn btn-sm btn-dark">Save</button>
@@ -108,31 +107,23 @@
             <tr>
                 <th>Holiday</th>
                 <th>Date</th>
-                <th>Action</th>
             </tr>
         </thead>
         <tbody>
             {% for h in holiday %}
             <tr>
-                <form method="POST" action="{{ url_for('admin_dashboard') }}">
-                    <input type="hidden" name="action" value="edit_holiday">
-                    <input type="hidden" name="schedule_id" value="{{ h.scheduleId }}">
-                    <td>{{ h.reason }}</td>
-                    <td>{{ h.holidayDate.strftime('%B-%d-%Y') }}</td>
-                    <td class="d-flex gap-2 align-items-center">
-                        <input type="text" name="reason" placeholder= "Holiday Name" class="form-control form-control-sm" value="{{ h.reason }}">
-                        <input type="date" name="holiday_date" class="form-control form-control-sm" value="{{ h.holidayDate.strftime('%Y-%m-%d') }}">
-                        <button type="submit" class="btn btn-sm btn-dark">Save</button>
-                    </td>
-                </form>
+                <td>{{ h.reason }}</td>
+                <td>{{ h.holidayDate.strftime('%B-%d-%Y') }}</td>
             </tr>
+
             {% endfor %}
             {% if not holiday %}
             <tr>
-                <td colspan="3" class="text-center">No holidays scheduled.</td>
+                <td colspan="2" class="text-center">No holidays scheduled.</td>
             </tr>
             {% endif %}
         </tbody>
     </table>
+</div>
 
 {% endblock %}

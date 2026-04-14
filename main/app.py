@@ -17,7 +17,7 @@ bcrypt = Bcrypt(app)
 
 #Configuration
 app.config['SQLALCHEMY_DATABASE_URI'] = \
-    'mysql+pymysql://root:Heer3481%40ift401@localhost/auth_db'
+    'mysql+pymysql://root:Likhi123@localhost/auth_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'your-secret-key'
 

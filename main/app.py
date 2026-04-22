@@ -16,10 +16,11 @@ app = Flask(__name__)
 bcrypt = Bcrypt(app)
 
 #Configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = \
-    'mysql+pymysql://root:Heer3481%40ift401@localhost/auth_db'
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://admin:password@database-1.c8fy8ms2eixr.us-east-1.rds.amazonaws.com:3306/auth_db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'your-secret-key'
+app.config['SECRET_KEY'] = 'your-secret-key'\
+
+
 
 # Initialize extensions
 db = SQLAlchemy(app)

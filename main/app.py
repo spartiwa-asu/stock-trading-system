@@ -809,4 +809,5 @@ if __name__ == '__main__':
     price_thread.daemon = True
     price_thread.start()
 
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+    #app.run(debug=True)

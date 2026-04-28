@@ -572,7 +572,7 @@ def update_stock_prices():
             db.session.commit()
             print("Stock prices updated")
 
-            time_module.sleep(15)
+            time_module.sleep(5)
 
 
 
@@ -809,5 +809,5 @@ if __name__ == '__main__':
     price_thread.daemon = True
     price_thread.start()
 
-    app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
     #app.run(debug=True)
